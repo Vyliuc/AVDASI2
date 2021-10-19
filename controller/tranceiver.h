@@ -4,12 +4,12 @@
 /************ Radio Setup ***************/
 
 // Change to 434.0 or other frequency, must match RX's freq!
-#define RF69_FREQ 915.0
+#define RF69_FREQ 434
 
 // Where to send packets to!
-#define DEST_ADDRESS   1
+#define DEST_ADDRESS   69
 // change addresses for each client board, any number :)
-#define MY_ADDRESS     2
+#define MY_ADDRESS     420
 
 
 #if defined (__AVR_ATmega32U4__) // Feather 32u4 w/Radio
@@ -76,7 +76,7 @@ uint8_t data[] = "";
 
 void tranceiver_setup();
 
-void transmit(uint8_t data);
+char* transmit(uint8_t data, char* msg);
 
 void receive(uint8_t data);
 
