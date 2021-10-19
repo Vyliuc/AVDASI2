@@ -43,7 +43,7 @@ void tranceiver_setup()
   Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 }
 
-void transmit(uint8_t data) 
+char* transmit(uint8_t data, char* msg) 
 {
   data = "  OK";
     
@@ -67,6 +67,8 @@ void transmit(uint8_t data)
           Serial.print("] : ");
           Serial.println((char*)buf);
           Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
+
+          return (char*)buf;
       }
       else {
           Serial.println("No reply, is anyone listening?");
@@ -75,6 +77,8 @@ void transmit(uint8_t data)
   else {
       Serial.println("Sending failed (no ack)");
   }
+
+  return "";
 }
 
 void receive(uint8_t data)
