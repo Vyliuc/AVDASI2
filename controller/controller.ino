@@ -1,7 +1,14 @@
-#include <tranceiver.h>
+#include "tranceiver.h"
+
+// Set pins for status leds
+#define MANUAL_LED_PIN    1
+#define AUTO_LED_PIN      2
 
 void setup() {
   tranceiver_setup();
+
+  // display 0 degrees angle after setup
+  displayDeflectionAngle(0);
 }
 
 // 0 - manual
@@ -9,71 +16,109 @@ void setup() {
 // 2 - auto
 int mode = 1;
 
+int potValue = 0;
+
 void loop() { 
   // TODO: create a function that monitors the position of the switch
   int switchPos = getSwitchPosition();
   
-  // If the switch is on Manual mode & if the potentiometer has changed the value
+  // If the switch is on Manual mode
   if (switchPos == 0)
   {
+    // If the switch was NOT on Manual
+    if (mode != 0) 
+    {
+      // Transmit the instructions to activate a Manual mode on aircraft
+      String cmd = "Manual";
+      String responseExpected = "Manual Mode Activated!";
+  
+      String response = transmit(data, cmd);
+  
+      if (response == responseExpected) 
+      {
+        // switch Manual status led ON
+        // switch Auto status led OFF
+        statusLEDS(true, false);
+         
+        // log success
+      }
+    }
+
+    // if potentiometer value has changed
+    int currentPotValue = getCurrentPotValue();
+    
+    if (currentPotValue != potValue) 
+    {
+      // TODO: also add some tolerance, pot value might fluctuate even when potentiometer is still??
+      potValue = currentPotValue;
+
+      // convert the pot value to string
+      String potValueString = String(potValue);
+
+      String responseExpected = "PotValue: " + potValueString;
+
+      String response = transmit(data, potValueString);
+
+      if (response == responseExpected) 
+      {
+        // blink Manual status led 1 time, 20 + 20ms delay
+        Blink(MANUAL_LED_PIN, 20, 1);
+
+        displayDeflectionAngle(potValue);
+        
+        // log success
+      }  
+    }
+
     mode = 0;
-    
-    int potValue = 0; // set to potentiometer value
-    std::string potValueString = std::to_string(potValue);
-    char const *potValueChar = potValueString.c_str();
-
-    char responseExpected[] = "PotValue: ";
-    strcpy(responseExpected, potValueChar);
-    
-    char* response = transmit(data, potValueChar);
-
-    if (response == responseExpected) 
-    {
-      // set Manual status led to GREEN
-      // blink the Manual mode status led
-      // switch Auto status led OFF
-      // log success
-    }
   }
-  // If the switch is on Auto mode & was on a different mode before
-  // Transmit the instructions to active an Auto mode on aircraft
-  else if (switchPos == 2 && mode != 2) 
+  // If the switch is on Auto mode
+  else if (switchPos == 2) 
   {
-   mode = 2;
-
-   char cmd[] = "Auto";
-   char responseExpected[] = "Auto Mode Activated!";
-
-   char* response = transmit(data, cmd);
-
-   if (response == responseExpected) 
+    // If the switch was NOT on Auto
+    if (mode != 2) 
     {
-      // set Auto mode status led to GREEN
-      // switch Manual status led OFF
-      // log success
+      // Transmit the instructions to activate an Auto mode on aircraft
+      String cmd = "Auto";
+      String responseExpected = "Auto Mode Activated!";
+  
+      String response = transmit(data, cmd);
+  
+      if (response == responseExpected) 
+      {
+        // switch Auto status led ON
+        // switch Manual status led OFF
+        statusLEDS(false, true);
+        
+        // log success
+      } 
     }
+
+    mode = 2;
   }
-  // If the switch is on Neutral & was NOT on neutral before
-  else if (switchPos == 1 && mode != 1) 
+  // If the switch is on Neutral
+  else if (switchPos == 1) 
   {
-    mode = 1;
-
-    
-  }
-  // set to neutral mode otherwise
-  else {
-    mode = 1;
-
-   char cmd[] = "Neutral";
-   char responseExpected[] = "Neutral Mode Activated!";
-
-   char* response = transmit(data, cmd);
-
-   if (response == responseExpected) 
+    // If the switch was NOT on Neutral
+    if (mode != 1) 
     {
-      // log success
-      // switch Manual and Auto leds off
+      // Transmit the instructions to activate a Neutral mode on aircraft
+      String cmd = "Neutral";
+      String responseExpected = "Neutral Mode Activated!";
+  
+      String response = transmit(data, cmd);
+  
+      if (response == responseExpected) 
+      {
+        // switch Auto status led OFF
+        // switch Manual status led OFF
+        statusLEDS(false, false);
+        
+        // log success
+      } 
     }
+    
+    mode = 1;    
   }
 
   // TODO: Receive if needed
@@ -84,4 +129,32 @@ int getSwitchPosition() {
 
   // return the switch position
   return 1;
+}
+
+int getCurrentPotValue() {
+
+  // return the potentiometer value
+  return 0;
+}
+
+void displayDeflectionAngle() {
+  // calculate the angle from the potentiometer voltage 
+  // display the angle
+  // log the angle
+}
+
+void statusLEDS(bool manualLedOn, bool autoLedOn) {
+  if (manualLedOn) {
+    digitalWrite(MANUAL_LED_PIN, HIGH);
+  }
+  else {
+    digitalWrite(MANUAL_LED_PIN, LOW);
+  }
+
+  if (autoLedOn) {
+    digitalWrite(AUTO_LED_PIN, HIGH);
+  }
+  else {
+    digitalWrite(AUTO_LED_PIN, LOW);
+  }
 }

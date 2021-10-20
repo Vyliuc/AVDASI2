@@ -1,4 +1,4 @@
-#include <tranceiver.h>
+#include "tranceiver.h"
 
 void tranceiver_setup()
 {
@@ -43,7 +43,7 @@ void tranceiver_setup()
   Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 }
 
-char* transmit(uint8_t data, char* msg) 
+String transmit(uint8_t data, String msg) 
 {
   data = "  OK";
     
@@ -68,7 +68,7 @@ char* transmit(uint8_t data, char* msg)
           Serial.println((char*)buf);
           Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
-          return (char*)buf;
+          return String(buf);
       }
       else {
           Serial.println("No reply, is anyone listening?");
