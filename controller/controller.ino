@@ -19,7 +19,6 @@ int mode = 1;
 int potValue = 0;
 
 void loop() { 
-  // TODO: create a function that monitors the position of the switch
   int switchPos = getSwitchPosition();
   
   // If the switch is on Manual mode
