@@ -1,6 +1,6 @@
-#include "tranceiver.h"
+#include "transceiver.h"
 
-void tranceiver_setup(int RADIO_TX_ADDRESS)
+void transceiver_setup(int RADIO_TX_ADDRESS)
 {
   rf69_manager = new RHReliableDatagram(rf69, RADIO_TX_ADDRESS);
 
