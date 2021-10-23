@@ -6,12 +6,6 @@
 // Change to 434.0 or other frequency, must match RX's freq!
 #define RF69_FREQ 434
 
-// Where to send packets to!
-#define DEST_ADDRESS   69
-// change addresses for each client board, any number :)
-#define MY_ADDRESS     420
-
-
 #if defined (__AVR_ATmega32U4__) // Feather 32u4 w/Radio
 #define RFM69_CS      8
 #define RFM69_INT     7
@@ -61,23 +55,27 @@
 #define RFM69_IRQN    RFM69_IRQ
 */
 
+#define RFM69_CS      8
+#define RFM69_INT     7
+#define RFM69_RST     4
+#define LED           13
+
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
 
-// Class to manage message delivery and receipt, using the driver declared above
-RHReliableDatagram rf69_manager(rf69, MY_ADDRESS);
-
+// Class to manage message delivery and receipt, set the address to NULL when initialising
+RHReliableDatagram * rf69_manager(rf69, NULL);
 
 int16_t packetnum = 0;  // packet counter, we increment per xmission
 
 // Dont put this on the stack:
 uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
-uint8_t data[] = "";
+//uint8_t data[] = "";
 
-void tranceiver_setup();
+void tranceiver_setup(int RADIO_TX_ADDRESS);
 
-char* transmit(uint8_t data, char* msg);
+String transmit(int RADIO_RX_ADDRESS, String msg);
 
-void receive(uint8_t data);
+String receive();
 
 void Blink(byte PIN, byte DELAY_MS, byte loops);
