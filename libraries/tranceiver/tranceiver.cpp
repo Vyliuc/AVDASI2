@@ -1,7 +1,9 @@
 #include "tranceiver.h"
 
-void tranceiver_setup()
+void tranceiver_setup(int RADIO_TX_ADDRESS)
 {
+  rf69_manager = new RHReliableDatagram(rf69, RADIO_TX_ADDRESS);
+
   Serial.begin(115200);
   //while (!Serial) { delay(1); } // wait until serial console is open, remove if not tethered to computer
 
@@ -18,7 +20,7 @@ void tranceiver_setup()
   digitalWrite(RFM69_RST, LOW);
   delay(10);
 
-  if (!rf69_manager.init()) {
+  if (!rf69_manager->init()) {
       Serial.println("RFM69 radio init failed");
       while (1);
   }
@@ -43,10 +45,8 @@ void tranceiver_setup()
   Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 }
 
-String transmit(uint8_t data, String msg) 
+String transmit(String msg, int RADIO_RX_ADDRESS) 
 {
-  data = "  OK";
-    
   delay(1000);  // Wait 1 second between transmits, could also 'sleep' here!
 
   char radiopacket[20] = "Hello World #";
@@ -54,11 +54,11 @@ String transmit(uint8_t data, String msg)
   Serial.print("Sending "); Serial.println(radiopacket);
 
   // Send a message to the DESTINATION!
-  if (rf69_manager.sendtoWait((uint8_t*)radiopacket, strlen(radiopacket), DEST_ADDRESS)) {
+  if (rf69_manager->sendtoWait((uint8_t*)radiopacket, strlen(radiopacket), RADIO_RX_ADDRESS)) {
       // Now wait for a reply from the server
       uint8_t len = sizeof(buf);
       uint8_t from;
-      if (rf69_manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
+      if (rf69_manager->recvfromAckTimeout(buf, &len, 2000, &from)) {
           buf[len] = 0; // zero out remaining string
 
           Serial.print("Got reply from #"); Serial.print(from);
@@ -68,7 +68,7 @@ String transmit(uint8_t data, String msg)
           Serial.println((char*)buf);
           Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
-          return String(buf);
+          return String((char*)buf);
       }
       else {
           Serial.println("No reply, is anyone listening?");
@@ -81,16 +81,14 @@ String transmit(uint8_t data, String msg)
   return "";
 }
 
-void receive(uint8_t data)
+String receive()
 {
-  data = "And hello back to you";
-
-  if (rf69_manager.available())
+  if (rf69_manager->available())
   {
     // Wait for a message addressed to us from the client
     uint8_t len = sizeof(buf);
     uint8_t from;
-    if (rf69_manager.recvfromAck(buf, &len, &from)) {
+    if (rf69_manager->recvfromAck(buf, &len, &from)) {
       buf[len] = 0; // zero out remaining string
       
       Serial.print("Got packet from #"); Serial.print(from);
@@ -101,10 +99,17 @@ void receive(uint8_t data)
       Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
       // Send a reply back to the originator client
-      if (!rf69_manager.sendtoWait(data, sizeof(data), from))
+      if (!rf69_manager->sendtoWait(buf, sizeof(buf), from)) 
+      {
         Serial.println("Sending failed (no ack)");
+      }
+      else {
+        return String((char*)buf);
+      }
     }
   }
+
+  return "";
 }
 
 void Blink(byte PIN, byte DELAY_MS, byte loops) {
