@@ -44,6 +44,8 @@ void setup() {
   transceiver_setup(RADIO_TX_ADDRESS);
   // setting up servo pin
   elevator.attach(PIN); // fill with the pin that the servo is on
+  // initialize serial communications at 9600 bps:
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -82,10 +84,12 @@ void loop() {
     float outval = map(currentPotVal, 0, 1023, 0, 180);  
     // sets the servo position according to the scaled value   
     elevator.write(outval);
-    refPotVal = currentPotVal;           
+    refPotVal = currentPotVal;
   } 
 
   //AUTO MODE
+  //Set error as zero initially
+  error = 0;
   if(mode == 2){
     // calculate error (in this case, excess moment)
     float error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
@@ -112,4 +116,19 @@ void loop() {
   if (mode == 1){
     elevator.write(0);
   }
+
+  //print to serial monitor for debug
+  Serial.print("potentiometer = ");
+  Serial.print(refPotVal);
+  Serial.print("\t del = ");
+  Serial.print(outval);
+  Serial.print("\t pitch =");
+  Serial.print(ang);
+  Serial.print("\t vel =");
+  Serial.print(angvel);
+  Serial.print("\t acc =");
+  Serial.print(angacc);
+  Serial.print("\t error =")
+  Serial.print(error);
+  
 }
