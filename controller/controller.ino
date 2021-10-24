@@ -1,11 +1,14 @@
-#include "tranceiver.h"
+#include <transceiver.h>
 
 // Set pins for status leds
 #define MANUAL_LED_PIN    1
 #define AUTO_LED_PIN      2
 
+#define RADIO_TX_ADDRESS     420
+#define RADIO_RX_ADDRESS     69
+
 void setup() {
-  tranceiver_setup();
+  transceiver_setup(RADIO_TX_ADDRESS);
 
   // display 0 degrees angle after setup
   displayDeflectionAngle(0);
@@ -31,7 +34,7 @@ void loop() {
       String cmd = "Manual";
       String responseExpected = "Manual Mode Activated!";
   
-      String response = transmit(data, cmd);
+      String response = transmit(RADIO_RX_ADDRESS, cmd);
   
       if (response == responseExpected) 
       {
@@ -56,7 +59,7 @@ void loop() {
 
       String responseExpected = "PotValue: " + potValueString;
 
-      String response = transmit(data, potValueString);
+      String response = transmit(RADIO_RX_ADDRESS, potValueString);
 
       if (response == responseExpected) 
       {
@@ -81,7 +84,7 @@ void loop() {
       String cmd = "Auto";
       String responseExpected = "Auto Mode Activated!";
   
-      String response = transmit(data, cmd);
+      String response = transmit(RADIO_RX_ADDRESS, cmd);
   
       if (response == responseExpected) 
       {
@@ -105,7 +108,7 @@ void loop() {
       String cmd = "Neutral";
       String responseExpected = "Neutral Mode Activated!";
   
-      String response = transmit(data, cmd);
+      String response = transmit(RADIO_RX_ADDRESS, cmd);
   
       if (response == responseExpected) 
       {
@@ -136,7 +139,7 @@ int getCurrentPotValue() {
   return 0;
 }
 
-void displayDeflectionAngle() {
+void displayDeflectionAngle(int potValue) {
   // calculate the angle from the potentiometer voltage 
   // display the angle
   // log the angle
