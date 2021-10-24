@@ -49,12 +49,18 @@ String transmit(int RADIO_RX_ADDRESS, String msg)
 {
   delay(1000);  // Wait 1 second between transmits, could also 'sleep' here!
 
-  char radiopacket[20] = "Hello World #";
-  itoa(packetnum++, radiopacket + 13, 10);
-  Serial.print("Sending "); Serial.println(radiopacket);
+  //char radiopacket[20] = "Hello World #";
+
+  //itoa(packetnum++, radiopacket + 13, 10);
+  Serial.print("Sending "); 
+  //Serial.println(radiopacket);
+  Serial.println(msg);
+
+  uint8_t msgInt = atoi(msg.c_str());
 
   // Send a message to the DESTINATION!
-  if (rf69_manager->sendtoWait((uint8_t*)radiopacket, strlen(radiopacket), RADIO_RX_ADDRESS)) {
+  if (rf69_manager->sendtoWait((uint8_t*)msgInt, sizeof(msgInt), RADIO_RX_ADDRESS)) 
+  {
       // Now wait for a reply from the server
       uint8_t len = sizeof(buf);
       uint8_t from;
@@ -88,6 +94,8 @@ String receive()
     // Wait for a message addressed to us from the client
     uint8_t len = sizeof(buf);
     uint8_t from;
+    String responseMsg = "";
+
     if (rf69_manager->recvfromAck(buf, &len, &from)) {
       buf[len] = 0; // zero out remaining string
       
@@ -98,13 +106,16 @@ String receive()
       Serial.println((char*)buf);
       Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
-      // Send a reply back to the originator client
-      if (!rf69_manager->sendtoWait(buf, sizeof(buf), from)) 
+      responseMsg = getResponseMsg(String((char*)buf));
+      uint8_t responseMsgInt = atoi(responseMsg.c_str());
+
+      // Send a reply back to the originator cliet
+      if (!rf69_manager->sendtoWait((uint8_t*)responseMsgInt, sizeof(responseMsgInt), from)) 
       {
         Serial.println("Sending failed (no ack)");
       }
       else {
-        return String((char*)buf);
+        return responseMsg;
       }
     }
   }
@@ -119,4 +130,13 @@ void Blink(byte PIN, byte DELAY_MS, byte loops) {
       digitalWrite(PIN, LOW);
       delay(DELAY_MS);
   }
+}
+
+String getResponseMsg(String msg) 
+{
+  if (msg == "Manual") return "Manual Mode Activated!";
+  else if (msg == "Auto") return "Auto Mode Activated!";
+  else if (msg == "Neutral") return "Neutral Mode Activated!";
+  else if (msg.indexOf("PotValue:") != -1) return msg;
+  else return "";
 }

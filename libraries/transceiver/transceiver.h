@@ -74,3 +74,5 @@ String transmit(int RADIO_RX_ADDRESS, String msg);
 String receive();
 
 void Blink(byte PIN, byte DELAY_MS, byte loops);
+
+String getResponseMsg(String msg);
