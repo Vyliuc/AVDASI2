@@ -45,7 +45,7 @@ void transceiver_setup(int RADIO_TX_ADDRESS)
   Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 }
 
-String transmit(String msg, int RADIO_RX_ADDRESS) 
+String transmit(int RADIO_RX_ADDRESS, String msg) 
 {
   delay(1000);  // Wait 1 second between transmits, could also 'sleep' here!
 
