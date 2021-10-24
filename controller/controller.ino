@@ -1,4 +1,4 @@
-#include <tranceiver.h>
+#include <transceiver.h>
 
 // Set pins for status leds
 #define MANUAL_LED_PIN    1
@@ -8,7 +8,7 @@
 #define RADIO_RX_ADDRESS     69
 
 void setup() {
-  tranceiver_setup(RADIO_TX_ADDRESS);
+  transceiver_setup(RADIO_TX_ADDRESS);
 
   // display 0 degrees angle after setup
   displayDeflectionAngle(0);

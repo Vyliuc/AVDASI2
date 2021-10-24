@@ -55,11 +55,6 @@
 #define RFM69_IRQN    RFM69_IRQ
 */
 
-#define RFM69_CS      8
-#define RFM69_INT     7
-#define RFM69_RST     4
-#define LED           13
-
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
 
@@ -72,7 +67,7 @@ int16_t packetnum = 0;  // packet counter, we increment per xmission
 uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
 //uint8_t data[] = "";
 
-void tranceiver_setup(int RADIO_TX_ADDRESS);
+void transceiver_setup(int RADIO_TX_ADDRESS);
 
 String transmit(int RADIO_RX_ADDRESS, String msg);
 
