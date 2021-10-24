@@ -33,7 +33,7 @@ float const rho = 1.225; //density
 float q = 0.5*rho*(pow(V,2)); // dynamic pressure (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
 float def = 0; // initial elevator deflection
 float const lim = 180; //elevator deflection limit (change as required)
-float M = 100 ; //second moment of area (REQUEST FROM CAD TEAM)
+//float M = ; //second moment of area (REQUEST FROM CAD TEAM)
 int mode = 1; //gives current mode
 float refPotVal = 0;
 
@@ -43,14 +43,14 @@ Servo elevator;
 void setup() {
   transceiver_setup(RADIO_TX_ADDRESS);
   // setting up servo pin
-  elevator.attach(9); // fill with the pin that the servo is on
+  elevator.attach(PIN); // fill with the pin that the servo is on
 }
 
 void loop() {
   //receive values for pitch data - WAITING ON HAMISH
-  float ang = 10;
-  float angvel = 10;
-  float angacc = 10;
+  //float ang = 10;
+  //float angvel = 10;
+  //float angacc = 10;
   
   // constantly listen to the transceiver & check if any data has been received
   String response = receive();
@@ -81,17 +81,17 @@ void loop() {
     // scale it to use it with the servo (value between 0 and 180)
     float outval = map(currentPotVal, 0, 1023, 0, 180);  
     // sets the servo position according to the scaled value   
-    elevator.write(outval); 
-    refPotVal = currentPotVal;                
+    elevator.write(outval);
+    refPotVal = currentPotVal;           
   } 
 
   //AUTO MODE
   if(mode == 2){
-    // stability reference
-    float ref = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def)))+(xg*m*g)- M*angacc;
+    // calculate error (in this case, excess moment)
+    float error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
 
-    //while reference is non zero, loop over moment balance until it's zero
-    if(ref != 0) {
+    //while the error is non zero, loop over moment balance until it's zero
+    if(error != 0 && def != outval) {
       //run moment balance
       float def = (((M*angacc)/(q*xtail*St))-((xg*m*g)/(q*xtail*St))-(at*ang)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
     
@@ -109,5 +109,7 @@ void loop() {
   }
   
   //NEUTRAL MODE
-
+  if (mode == 1){
+    elevator.write(0);
+  }
 }
