@@ -1,4 +1,4 @@
-#include <transceiver.h>
+//#include <transceiver.h>
 #include <I2Cdev.h>
 #include <MPU6050_6Axis_MotionApps20.h>
 
@@ -35,7 +35,7 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
  * The DMP is the onboard processor that computes orientation from the accelerometer and gyro data.
  * \return device status (0 = success, 1 = initial memory load failed, 2 = DMP configuration updates failed)
  */
-void mpuSetup() {
+int mpuSetup() {
   // intitialise device
   Serial.println(F("Initialising MPU..."));
   mpu.initialize();
@@ -54,7 +54,7 @@ void mpuSetup() {
   mpu.setXGyroOffset(220);
   mpu.setYGyroOffset(76);
   mpu.setZGyroOffset(-85);
-  mpu.setZAccelOffset(1788) // TODO: factory default?
+  mpu.setZAccelOffset(1788); // TODO: factory default?
 
   // Check whether DMP initialised successfully (returns 0 if successful)
   if(devStatus == 0) {
@@ -84,7 +84,9 @@ void mpuSetup() {
     // ERROR!
     // 1 = initial memory load failed
     // 2 = DMP configuration updates failed
-    Serial.print(F("DMP Initialisation failed (code " + devStatus + ")"));
+    Serial.print(F("DMP Initialisation failed (code "));
+    Serial.print(devStatus);
+    Serial.println(F(")"));
   }
   return devStatus;
 }
@@ -114,10 +116,10 @@ void mpuLoop() {
 }
 
 void setup() {
-  transceiver_setup(RADIO_TX_ADDRESS);
-  mpuStatus = mpuSetup();
+  //transceiver_setup(RADIO_TX_ADDRESS);
+  int mpuStatus = mpuSetup();
   if(mpuStatus != 0) {
-    Serial.println("Error when setting up MPU")
+    Serial.println("Error when setting up MPU");
   }
 }
 
@@ -126,18 +128,18 @@ void loop() {
   mpuLoop();
 
   // constantly listen to the transceiver & check if any data has been received
-  String response = receive();
+  // String response = receive();
 
-  if (response == "Manual") 
-  {
+  // if (response == "Manual") 
+  // {
 
-  }
-  else if (response == "Auto") 
-  {
+  // }
+  // else if (response == "Auto") 
+  // {
 
-  }
-  else if (response == "Neutral") 
-  {
+  // }
+  // else if (response == "Neutral") 
+  // {
 
-  }
+  // }
 }

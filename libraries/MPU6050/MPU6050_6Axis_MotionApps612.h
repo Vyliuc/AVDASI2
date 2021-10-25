@@ -14,14 +14,17 @@
 /* ============================================
 I2Cdev device library code is placed under the MIT license
 Copyright (c) 2012 Jeff Rowberg
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
+
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,17 +35,17 @@ THE SOFTWARE.
 ===============================================
 */
 
-#ifndef _MPU6050_6AXIS_MOTIONAPPS20_H_
-#define _MPU6050_6AXIS_MOTIONAPPS20_H_
+#ifndef _MPU6050_6AXIS_MOTIONAPPS612_H_
+#define _MPU6050_6AXIS_MOTIONAPPS612_H_
 
 // take ownership of the "MPU6050" typedef
 #define I2CDEVLIB_MPU6050_TYPEDEF
 
 #include "MPU6050.h"
 
-class MPU6050_6Axis_MotionApps20 : public MPU6050_Base {
+class MPU6050_6Axis_MotionApps612 : public MPU6050_Base {
     public:
-        MPU6050_6Axis_MotionApps20(uint8_t address=MPU6050_DEFAULT_ADDRESS, void *wireObj=0) : MPU6050_Base(address, wireObj) { }
+        MPU6050_6Axis_MotionApps612(uint8_t address=MPU6050_DEFAULT_ADDRESS, void *wireObj=0) : MPU6050_Base(address, wireObj) { }
 
         uint8_t dmpInitialize();
         bool dmpPacketAvailable();
@@ -145,6 +148,6 @@ class MPU6050_6Axis_MotionApps20 : public MPU6050_Base {
         uint16_t dmpPacketSize;
 };
 
-typedef MPU6050_6Axis_MotionApps20 MPU6050;
+typedef MPU6050_6Axis_MotionApps612 MPU6050;
 
-#endif /* _MPU6050_6AXIS_MOTIONAPPS20_H_ */
+#endif /* _MPU6050_6AXIS_MOTIONAPPS612_H_ */
