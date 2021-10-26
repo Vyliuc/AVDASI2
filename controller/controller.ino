@@ -4,11 +4,23 @@
 #define MANUAL_LED_PIN    1
 #define AUTO_LED_PIN      2
 
-#define RADIO_TX_ADDRESS     420
+#define RADIO_TX_ADDRESS     96
 #define RADIO_RX_ADDRESS     69
 
+// Singleton instance of the radio driver
+RH_RF69 rf69(RFM69_CS, RFM69_INT);
+
+// Class to manage message delivery and receipt, set the address to NULL when initialising
+RHReliableDatagram rf69_manager(rf69, RADIO_RX_ADDRESS);
+
+int16_t packetnum = 0;  // packet counter, we increment per xmission
+
+// Dont put this on the stack:
+uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
+//uint8_t data[] = "";
+
 void setup() {
-  transceiver_setup(RADIO_TX_ADDRESS);
+  transceiver_setup(rf69, rf69_manager, RADIO_TX_ADDRESS);
 
   // display 0 degrees angle after setup
   displayDeflectionAngle(0);
@@ -34,7 +46,7 @@ void loop() {
       String cmd = "Manual";
       String responseExpected = "Manual Mode Activated!";
   
-      String response = transmit(RADIO_RX_ADDRESS, cmd);
+      String response = transmit(rf69, rf69_manager, buf, RADIO_RX_ADDRESS, cmd);
   
       if (response == responseExpected) 
       {
@@ -59,7 +71,7 @@ void loop() {
 
       String responseExpected = "PotValue: " + potValueString;
 
-      String response = transmit(RADIO_RX_ADDRESS, potValueString);
+      String response = transmit(rf69, rf69_manager, buf, RADIO_RX_ADDRESS, potValueString);
 
       if (response == responseExpected) 
       {
@@ -84,7 +96,7 @@ void loop() {
       String cmd = "Auto";
       String responseExpected = "Auto Mode Activated!";
   
-      String response = transmit(RADIO_RX_ADDRESS, cmd);
+      String response = transmit(rf69, rf69_manager, buf, RADIO_RX_ADDRESS, cmd);
   
       if (response == responseExpected) 
       {
@@ -108,7 +120,7 @@ void loop() {
       String cmd = "Neutral";
       String responseExpected = "Neutral Mode Activated!";
   
-      String response = transmit(RADIO_RX_ADDRESS, cmd);
+      String response = transmit(rf69, rf69_manager, buf, RADIO_RX_ADDRESS, cmd);
   
       if (response == responseExpected) 
       {

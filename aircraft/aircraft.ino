@@ -3,17 +3,29 @@
 #include <transceiver.h>
 
 #define RADIO_TX_ADDRESS     69
-#define RADIO_RX_ADDRESS     420
+#define RADIO_RX_ADDRESS     96
+
+// Singleton instance of the radio driver
+RH_RF69 rf69(RFM69_CS, RFM69_INT);
+
+// Class to manage message delivery and receipt
+RHReliableDatagram rf69_manager(rf69, RADIO_RX_ADDRESS);
+
+// packet counter, we increment per xmission
+int16_t packetnum = 0; 
+
+// Dont put this on the stack:
+uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
 
 File logsFile;
 
 void setup() {
-  transceiver_setup(RADIO_TX_ADDRESS);
+  transceiver_setup(rf69, rf69_manager, RADIO_TX_ADDRESS);
   
   Serial.begin(9600);
   Serial.print("Initializing SD card...");
 
-  if (!SD.begin(4)) {
+  if (!SD.begin(BUILTIN_SDCARD)) {
     Serial.println("initialization failed!");
     //while (1);
   }
@@ -23,7 +35,7 @@ void setup() {
 void loop() 
 {
   // constantly listen to the transceiver & check if any data has been received
-  String response = receive();
+  String response = receive(rf69, rf69_manager, buf);
 
   if (response == "Manual") 
   {
