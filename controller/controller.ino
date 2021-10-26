@@ -128,13 +128,42 @@ void loop() {
 }
 
 int getSwitchPosition() {
-
+  int switchState = 0;
+  pinMode(2, INPUT); // TODO input switch location
+  switchState = digitalRead(2);
+  if(switchState == LOW){
+    getSwitchPosition = 0;
+  }
+  else if(switchState == HIGH){
+    getSwitchPOsition = 1;
+  }
+  else if(switchState == 3){ // TODO 3-phase switch readings?
+    getSwitchPosition = 2;
+  }
+  
   // return the switch position
+  // TODO LEDs?
   return 1;
 }
 
 int getCurrentPotValue() {
+  int const potPin = A0; // TODO potentiometer control pin location
+  int potVal;
+  int angle;
 
+  Serial.begin(9600);
+
+  potVal = analogRead(potPin);
+  getCurrentPotValue = potVal;
+
+  // TODO serial monitor? logging?
+  potVal = analogRead(potPin);
+  Serial.print("potVal: ");
+  Serial.print(potVal);
+
+  angle = map(potVal, 0, 1023, 0, 179);
+  Serial.print(", angle: ");
+  Serial.println(angle);
   // return the potentiometer value
   return 0;
 }
@@ -142,7 +171,34 @@ int getCurrentPotValue() {
 void displayDeflectionAngle(int potValue) {
   // calculate the angle from the potentiometer voltage 
   // display the angle
+
+  #include <LiquidCrystal.h>
+  LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+  const int switchPin = 6;
+  int switchState = 0;
+  int prevSwitchState = 0;
+  int displayAngle;
+
+  lcd.begin(16, 2);
+  pinMode(switchPin, INPUT);
+
+  lcd.print("Elevator deflection angle");
+  switchState = digitalRead(switchPin);
+
+  if(currentDeflection != prevDeflection){
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(displayAngle);
+    lcd.setCursor(0,1);
+  }
+
+  prevDeflection = currentDeflection;
   // log the angle
+  Serial.begin(9600);
+  Serial.print("Deflection");
+  Serial.println(currentDeflection);
+  
 }
 
 void statusLEDS(bool manualLedOn, bool autoLedOn) {
