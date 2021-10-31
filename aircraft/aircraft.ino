@@ -5,7 +5,9 @@
 #include <MPU6050_6Axis_MotionApps20.h>
 #include <Servo.h>
 
-#define INTERRUPT_PIN        2 // TODO: check this value
+// TODO: set pins
+#define INTERRUPT_PIN        2 
+#define SERVO_PIN            3
 
 #define RADIO_TX_ADDRESS     69
 #define RADIO_RX_ADDRESS     96
@@ -33,6 +35,29 @@ VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
+// horizontal balance variables
+int i = 0; // counter
+float V = 20; // velocity (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
+float St = 0.141; // tailplane area
+float at = 4.079; // tail lift curve slope
+float adel = 2.37; // elevator lift curve slope
+float xg = 31.75; // (xcg - xpivot)
+float xtail = 815; // (xact - xpivot)
+float m = 10; // mass (assumed 10kg)
+float it = -2; // tail setting angle
+float const g = 9.80665; //g
+float const rho = 1.225; //density
+float q = 0.5*rho*(pow(V,2)); // dynamic pressure (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
+float def = 0; // initial elevator deflection
+float error = 0; // excess moment from the balance of moments
+float const lim = 180; //elevator deflection limit (change as required)
+float M = 0; //second moment of area (REQUEST FROM CAD TEAM)
+float refPotVal = 0;
+
+int mode = 1; //gives current mode
+
+Servo elevator;
+
 File logsFile;
 
 void setup() 
@@ -48,48 +73,8 @@ void setup()
   {
     Serial.println("Error when setting up MPU");
   }
-//function to extract number from string
-int getval(String str){
-  //search for the first digit
-  size_t i = 0;
-  for ( ; i < str.length(); i++ ){ if ( isdigit(str[i]) ) break; }
 
-  // remove the first characters, which aren't digits
-  str = str.substring(i, str.length() - i );
-
-  // convert the remaining text to an integer
-  int id = atoi(str.c_str());
-  return (id);
-}
-
-//allocate memory
-int i = 0; // counter
-float V = 20; // velocity (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
-float St = 0.141; // tailplane area
-float at = 4.079; // tail lift curve slope
-float adel = 2.37; // elevator lift curve slope
-float xg = 31.75; // (xcg - xpivot)
-float xtail = 815; // (xact - xpivot)
-float m = 10; // mass (assumed 10kg)
-float it = -2; // tail setting angle
-float const g = 9.80665; //g
-float const rho = 1.225; //density
-float q = 0.5*rho*(pow(V,2)); // dynamic pressure (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
-float def = 0; // initial elevator deflection
-float const lim = 180; //elevator deflection limit (change as required)
-//float M = ; //second moment of area (REQUEST FROM CAD TEAM)
-int mode = 1; //gives current mode
-float refPotVal = 0;
-
-//initialise servo
-Servo elevator;
-
-void setup() {
-  transceiver_setup(RADIO_TX_ADDRESS);
-  // setting up servo pin
-  elevator.attach(PIN); // fill with the pin that the servo is on
-  // initialize serial communications at 9600 bps:
-  Serial.begin(9600);
+  elevator.attach(SERVO_PIN);
 }
 
 void loop() {
@@ -97,69 +82,81 @@ void loop() {
   mpuLoop();
 
   //receive values for pitch data - WAITING ON HAMISH
-  //float ang = 10;
-  //float angvel = 10;
-  //float angacc = 10;
+  float ang = 10;
+  float angvel = 10;
+  float angacc = 10;
   
   // constantly listen to the transceiver & check if any data has been received
   String response = receive(rf69, rf69_manager);
 
+  // set the mode
   if (response == "Manual") 
   {
-    //Set mode
     mode = 0;
   }
   else if (response == "Auto") 
   {
-    //Set mode
     mode = 2;
   }
   else if (response == "Neutral") 
   {
-    //Set mode
     mode = 1;
   }
   
   //MANUAL MODE
   //search for whether it contains "PotValue:"
   String key = "PotValue:";
-  //if it contains the key, and manual mode is active, use getval and write the potvalue to the servo
-  if (response.indexOf(key) != -1 && mode == 0) {
-    float currentPotVal = getval(response);
-    // scale it to use it with the servo (value between 0 and 180)
-    float outval = map(currentPotVal, 0, 1023, 0, 180);  
-    // sets the servo position according to the scaled value   
-    elevator.write(outval);
+  //if it contains the key, and manual mode is active, use getIntFromString and write the potvalue to the servo
+  if (response.indexOf(key) != -1 && mode == 0) 
+  {
+    float currentPotVal = getIntFromString(response);
+
     refPotVal = currentPotVal;
+
+    // scale it to use it with the servo (value between 0 and 180)
+    float angle = map(currentPotVal, 0, 1023, 0, 180);  
+
+    // sets the servo position according to the scaled value   
+    elevator.write(angle);
   } 
 
   //AUTO MODE
-  //Set error as zero initially
-  error = 0;
-  if(mode == 2){
-    // calculate error (in this case, excess moment)
-    float error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
+  if (mode == 2)
+  {
+    // save the previous deflection in def_previous
+    float def_previous = def;
 
-    //while the error is non zero, loop over moment balance until it's zero
-    if(error != 0 && def != outval) {
-      //run moment balance
-      float def = (((M*angacc)/(q*xtail*St))-((xg*m*g)/(q*xtail*St))-(at*ang)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
+    // calculate error (in this case, excess moment)
+    error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
     
+    //while the error is non zero, loop over moment balance until it's zero
+    if (error != 0) 
+    {
+      //run moment balance
+      def = (((M*angacc)/(q*xtail*St))-((xg*m*g)/(q*xtail*St))-(at*ang)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
+    }
+
+    if (def != def_previous) 
+    {
       //write deflection onto servo after some scaling and limiting
-      if (abs(def) <= lim) {
+      if (abs(def) <= lim) 
+      {
         elevator.write(def);
       }
-      else if (def > lim) {
+      else if (def > lim) 
+      {
         elevator.write(lim);
       }
-      else if (def < (-1*lim)) {
+      else if (def < (-1*lim)) 
+      {
         elevator.write((-1*lim));
       }
     }
   }
   
   //NEUTRAL MODE
-  if (mode == 1){
+  if (mode == 1)
+  {
     elevator.write(0);
   }
 
@@ -167,7 +164,7 @@ void loop() {
   Serial.print("potentiometer = ");
   Serial.print(refPotVal);
   Serial.print("\t del = ");
-  Serial.print(outval);
+  Serial.print(def);
   Serial.print("\t pitch =");
   Serial.print(ang);
   Serial.print("\t vel =");
@@ -175,8 +172,7 @@ void loop() {
   Serial.print("\t acc =");
   Serial.print(angacc);
   Serial.print("\t error =")
-  Serial.print(error);
-  
+  Serial.println(error);
 }
 
 /** 
@@ -295,4 +291,21 @@ void logToSD(String msg)
   {
     Serial.println("Error opening logs.txt");
   }
+}
+
+
+int getIntFromString(String str) 
+{
+  //function to extract number from string
+
+  //search for the first digit
+  size_t i = 0;
+  for ( ; i < str.length(); i++ ){ if ( isdigit(str[i]) ) break; }
+
+  // remove the first characters, which aren't digits
+  str = str.substring(i, str.length() - i );
+
+  // convert the remaining text to an integer
+  int id = atoi(str.c_str());
+  return (id);
 }
