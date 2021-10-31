@@ -1,11 +1,16 @@
+#include <LiquidCrystal.h>
 #include <transceiver.h>
 
-// Set pins for status leds
+// TODO: Set pins
 #define MANUAL_LED_PIN    1
 #define AUTO_LED_PIN      2
+#define POT_CONTROL_PIN   3
+#define SWITCH_PIN        4
 
 #define RADIO_TX_ADDRESS     96
 #define RADIO_RX_ADDRESS     69
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
@@ -13,7 +18,8 @@ RH_RF69 rf69(RFM69_CS, RFM69_INT);
 // Class to manage message delivery and receipt
 RHReliableDatagram rf69_manager(rf69, RADIO_TX_ADDRESS);
 
-void setup() {
+void setup() 
+{
   transceiverSetup(rf69, rf69_manager);
 
   // display 0 degrees angle after setup
@@ -27,7 +33,8 @@ int mode = 1;
 
 int potValue = 0;
 
-void loop() { 
+void loop() 
+{ 
   int switchPos = getSwitchPosition();
   
   // If the switch is on Manual mode
@@ -52,9 +59,9 @@ void loop() {
       }
     }
 
-    // if potentiometer value has changed
     int currentPotValue = getCurrentPotValue();
     
+    // if potentiometer value has changed
     if (currentPotValue != potValue) 
     {
       // TODO: also add some tolerance, pot value might fluctuate even when potentiometer is still??
@@ -130,78 +137,59 @@ void loop() {
   }
 }
 
-int getSwitchPosition() {
+int getSwitchPosition() 
+{
   int switchState = 0;
-  pinMode(2, INPUT); // TODO input switch location
-  switchState = digitalRead(2);
-  if(switchState == LOW){
-    getSwitchPosition = 0;
+
+  // TODO: input switch location
+  pinMode(SWITCH_PIN, INPUT);
+
+  switchState = digitalRead(SWITCH_PIN);
+
+  if (switchState == LOW) 
+  {
+    // switch at Manual
+    return 0;
   }
-  else if(switchState == HIGH){
-    getSwitchPOsition = 1;
+  else if (switchState == HIGH)
+  {
+    // switch at Auto
+    return 2;
   }
-  else if(switchState == 3){ // TODO 3-phase switch readings?
-    getSwitchPosition = 2;
+  else
+  { 
+    // switch at Neutral
+    // TODO: 3-phase switch readings?
+    return 1;
   }
-  
-  // return the switch position
-  // TODO LEDs?
-  return 1;
 }
 
-int getCurrentPotValue() {
-  int const potPin = A0; // TODO potentiometer control pin location
-  int potVal;
-  int angle;
+int getCurrentPotValue() 
+{
+  int potVal = 0;
 
   Serial.begin(9600);
 
-  potVal = analogRead(potPin);
-  getCurrentPotValue = potVal;
-
-  // TODO serial monitor? logging?
-  potVal = analogRead(potPin);
+  potVal = analogRead(POT_CONTROL_PIN);
   Serial.print("potVal: ");
-  Serial.print(potVal);
+  Serial.println(potVal);
 
-  angle = map(potVal, 0, 1023, 0, 179);
-  Serial.print(", angle: ");
-  Serial.println(angle);
   // return the potentiometer value
-  return 0;
+  return potVal;
 }
 
 void displayDeflectionAngle(int potValue) {
   // calculate the angle from the potentiometer voltage 
   // display the angle
 
-  #include <LiquidCrystal.h>
-  LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-
-  const int switchPin = 6;
-  int switchState = 0;
-  int prevSwitchState = 0;
-  int displayAngle;
+  int displayAngle = map(potValue, 0, 1023, 0, 179);
 
   lcd.begin(16, 2);
-  pinMode(switchPin, INPUT);
-
-  lcd.print("Elevator deflection angle");
-  switchState = digitalRead(switchPin);
-
-  if(currentDeflection != prevDeflection){
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(displayAngle);
-    lcd.setCursor(0,1);
-  }
-
-  prevDeflection = currentDeflection;
-  // log the angle
-  Serial.begin(9600);
-  Serial.print("Deflection");
-  Serial.println(currentDeflection);
-  
+  lcd.print("Elevator deflection angle: ");
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.println(displayAngle);
+  lcd.setCursor(0,1);
 }
 
 void statusLEDS(bool manualLedOn, bool autoLedOn) {

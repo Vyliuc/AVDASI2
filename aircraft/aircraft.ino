@@ -13,7 +13,8 @@ RHReliableDatagram rf69_manager(rf69, RADIO_TX_ADDRESS);
 
 File logsFile;
 
-void setup() {
+void setup() 
+{
   initSD();
   transceiverSetup(rf69, rf69_manager);
 }
