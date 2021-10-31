@@ -4,6 +4,8 @@
 #include <I2Cdev.h>
 #include <MPU6050_6Axis_MotionApps20.h>
 
+#define INTERRUPT_PIN        2 // TODO: check this value
+
 #define RADIO_TX_ADDRESS     69
 #define RADIO_RX_ADDRESS     96
 
@@ -12,19 +14,6 @@ RH_RF69 rf69(RFM69_CS, RFM69_INT);
 
 // Class to manage message delivery and receipt
 RHReliableDatagram rf69_manager(rf69, RADIO_TX_ADDRESS);
-
-File logsFile;
-
-void setup() 
-{
-  initSD();
-  transceiverSetup(rf69, rf69_manager);
-/*****************************************************************************
- * MPU6050 SETUP                                                             *
- * Adapted from the MPU6050_DMP6.ino example in the i2cdevlib library        *
- * MPU6050 explanation: https://mjwhite8119.github.io/Robots/mpu6050         *
- *****************************************************************************/
-#define INTERRUPT_PIN 2 // TODO: check this value
 
 MPU6050 mpu;
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
@@ -42,6 +31,44 @@ Quaternion q;           // [w, x, y, z]         quaternion container
 VectorFloat gravity;    // [x, y, z]            gravity vector
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+
+File logsFile;
+
+void setup() 
+{
+  initSD();
+  transceiverSetup(rf69, rf69_manager);
+
+  Serial.begin(9600);
+
+  int mpuStatus = mpuSetup();
+
+  if (mpuStatus != 0) 
+  {
+    Serial.println("Error when setting up MPU");
+  }
+}
+
+void loop() {
+  // Display roll, pitch, yaw from MPU
+  mpuLoop();
+
+  // constantly listen to the transceiver & check if any data has been received
+  String response = receive(rf69, rf69_manager);
+
+  if (response == "Manual") 
+  {
+    
+  }
+  else if (response == "Auto") 
+  {
+
+  }
+  else if (response == "Neutral") 
+  {
+
+  }
+}
 
 /** 
  * SETUP MPU6050
@@ -127,37 +154,6 @@ void mpuLoop() {
     Serial.print(ypr[1] * 180/M_PI);
     Serial.print("\t");
   }
-}
-
-void setup() {
-  //transceiver_setup(RADIO_TX_ADDRESS);
-  int mpuStatus = mpuSetup();
-  if(mpuStatus != 0) {
-    Serial.println("Error when setting up MPU");
-  }
-}
-
-void loop() {
-  // Display roll, pitch, yaw from MPU
-  mpuLoop();
-
-  // constantly listen to the transceiver & check if any data has been received
-  String response = receive();
-
-  String response = receive(rf69, rf69_manager);
-
-  if (response == "Manual") 
-  {
-    
-  }
-  else if (response == "Auto") 
-  {
-
-  // }
-  // else if (response == "Neutral") 
-  // {
-
-  // }
 }
 
 void initSD()
