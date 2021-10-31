@@ -1,6 +1,8 @@
 #include "transceiver.h"
 
-void transceiver_setup(RH_RF69 rf69, RHReliableDatagram rf69_manager, int RADIO_TX_ADDRESS)
+uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
+
+void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager)
 {
   Serial.begin(115200);
   //while (!Serial) { delay(1); } // wait until serial console is open, remove if not tethered to computer
@@ -43,22 +45,35 @@ void transceiver_setup(RH_RF69 rf69, RHReliableDatagram rf69_manager, int RADIO_
   Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 }
 
-String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t* buf, int RADIO_RX_ADDRESS, String msg) 
+String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg) 
 {
   // Wait 1 second between transmits, could also 'sleep' here!
   delay(1000);
-
+  
   const char* radiopacket = msg.c_str();
 
   Serial.print("Sending "); 
-  Serial.println(radiopacket);
+  Serial.print(radiopacket);
+  Serial.print(" to "); 
+  Serial.println(RADIO_RX_ADDRESS);
+
+  Serial.print("Length: "); 
+  Serial.println(strlen(radiopacket));
+
+  Serial.print("uint8_t: "); 
+  Serial.println((uint8_t)radiopacket);
 
   // Send a message to the DESTINATION!
   if (rf69_manager.sendtoWait((uint8_t*)radiopacket, strlen(radiopacket), RADIO_RX_ADDRESS)) 
   {
+      Serial.println("Message sent. Waiting for a reply... "); 
       // Now wait for a reply from the server
       uint8_t len = sizeof(buf);
       uint8_t from;
+
+      Serial.print("Buf len: "); 
+      Serial.println(len);
+
       if (rf69_manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
           buf[len] = 0; // zero out remaining string
 
@@ -82,14 +97,18 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t* buf, int
   return "";
 }
 
-String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t* buf)
+String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager)
 {
   if (rf69_manager.available())
   {
+    Serial.println("Waiting for the message... ");
     // Wait for a message addressed to us from the client
     uint8_t len = sizeof(buf);
     uint8_t from;
     String responseMsg = "";
+
+    Serial.print("Buf len: "); 
+    Serial.println(len);
 
     if (rf69_manager.recvfromAck(buf, &len, &from)) {
       buf[len] = 0; // zero out remaining string
