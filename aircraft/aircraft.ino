@@ -20,9 +20,9 @@ Quaternion q;        // [w, x, y, z]        quaternion container
 VectorFloat gravity; // [x, y, z]           gravity vector
 float ypr[3];        // [yaw, pitch, roll]  yaw/pitch/roll container and gravity vector
 
-// struct for attitude output
+// struct for attitude output with a timestamp
 struct att {
-    float time = micros() / 1.0E6; // time since program started
+    float time = micros() / 1.0E6; // time since program started, will overflow after about 35 mins
     float yaw;                     // yaw in radians
     float pitch;                   // pitch in radians
     float roll;                    // roll in radians
@@ -30,7 +30,7 @@ struct att {
 
 /** 
  * SETUP MPU6050
- * Initialises MPU, initialises Digital Motion Processor (DMP), calibrates device, enables interrupt detection.
+ * Initialises MPU, initialises Digital Motion Processor (DMP), and calibrates device.
  * The DMP is the onboard processor that computes orientation from the accelerometer and gyro data.
  */
 void mpuSetup() {
@@ -44,7 +44,7 @@ void mpuSetup() {
 
     // initalise the DMP
     dmpStatus = mpu.dmpInitialize();
-    // Check whether DMP initialised successfully (devStatus == 0 if successful)
+    // Check whether DMP initialised successfully (dmpStatus == 0 if successful)
     if(dmpStatus == 0) {
         // calibration: generate offsets and calibrate the MPU6050
         mpu.CalibrateAccel(16);
@@ -65,8 +65,8 @@ void mpuSetup() {
 }
 
 /**
- * Polls the MPU then converts the pitch value to degrees.
- * \return MPU pitch in degrees 
+ * Polls the MPU for attitude data then creates an att struct.
+ * \return att struct with yaw, pitch, roll in radians and a timstamp in seconds.
  */
 att getAttitude() {
     readYPR();
