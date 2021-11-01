@@ -57,12 +57,6 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
   Serial.print(" to "); 
   Serial.println(RADIO_RX_ADDRESS);
 
-  Serial.print("Length: "); 
-  Serial.println(strlen(radiopacket));
-
-  Serial.print("uint8_t: "); 
-  Serial.println((uint8_t)radiopacket);
-
   // Send a message to the DESTINATION!
   if (rf69_manager.sendtoWait((uint8_t*)radiopacket, strlen(radiopacket), RADIO_RX_ADDRESS)) 
   {
@@ -70,9 +64,6 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
       // Now wait for a reply from the server
       uint8_t len = sizeof(buf);
       uint8_t from;
-
-      Serial.print("Buf len: "); 
-      Serial.println(len);
 
       if (rf69_manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
           buf[len] = 0; // zero out remaining string
@@ -106,9 +97,6 @@ String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager)
     uint8_t len = sizeof(buf);
     uint8_t from;
     String responseMsg = "";
-
-    Serial.print("Buf len: "); 
-    Serial.println(len);
 
     if (rf69_manager.recvfromAck(buf, &len, &from)) {
       buf[len] = 0; // zero out remaining string

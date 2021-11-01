@@ -55,7 +55,9 @@ void loop()
         // switch Auto status led OFF
         statusLEDS(true, false);
          
-        // log success
+        Serial.println("Transmission successful!");
+        Serial.print("Response: ");
+        Serial.println(response);
       }
     }
 
@@ -81,7 +83,9 @@ void loop()
 
         displayDeflectionAngle(potValue);
         
-        // log success
+        Serial.println("Transmission successful!");
+        Serial.print("Response: ");
+        Serial.println(response);
       }  
     }
 
@@ -105,7 +109,9 @@ void loop()
         // switch Manual status led OFF
         statusLEDS(false, true);
         
-        // log success
+        Serial.println("Transmission successful!");
+        Serial.print("Response: ");
+        Serial.println(response);
       } 
     }
 
@@ -129,7 +135,9 @@ void loop()
         // switch Manual status led OFF
         statusLEDS(false, false);
         
-        // log success
+        Serial.println("Transmission successful!");
+        Serial.print("Response: ");
+        Serial.println(response);
       } 
     }
     
