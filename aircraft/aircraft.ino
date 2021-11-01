@@ -20,6 +20,14 @@ Quaternion q;        // [w, x, y, z]        quaternion container
 VectorFloat gravity; // [x, y, z]           gravity vector
 float ypr[3];        // [yaw, pitch, roll]  yaw/pitch/roll container and gravity vector
 
+// struct for attitude output
+struct att {
+    float time = micros() / 1.0E6; // time since program started
+    float yaw;                     // yaw in radians
+    float pitch;                   // pitch in radians
+    float roll;                    // roll in radians
+};
+
 /** 
  * SETUP MPU6050
  * Initialises MPU, initialises Digital Motion Processor (DMP), calibrates device, enables interrupt detection.
@@ -60,10 +68,13 @@ void mpuSetup() {
  * Polls the MPU then converts the pitch value to degrees.
  * \return MPU pitch in degrees 
  */
-float getPitchDeg() {
+att getAttitude() {
     readYPR();
-    float pitchDeg = ypr[1] * 180.0/M_PI;
-    return pitchDeg;
+    struct att attitude;
+    attitude.yaw = ypr[0];
+    attitude.pitch = ypr[1];
+    attitude.roll = ypr[2];
+    return attitude;
 }
 
 /**
@@ -89,7 +100,11 @@ void setup() {
 }
 
 void loop() {
-    // Display roll, pitch, yaw from MPU
-    float pitchDeg = getPitchDeg();
-    Serial.println(pitchDeg);
+    // Get roll, pitch, yaw from MPU
+    att attitude = getAttitude();
+
+    // Display pitch and timestamp
+    Serial.print(attitude.pitch * 180.0/M_PI);
+    Serial.print(F("\t"));
+    Serial.println(attitude.time,6);
 }
