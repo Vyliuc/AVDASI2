@@ -20,17 +20,17 @@ Quaternion q;        // [w, x, y, z]        quaternion container
 VectorFloat gravity; // [x, y, z]           gravity vector
 float ypr[3];        // [yaw, pitch, roll]  yaw/pitch/roll container and gravity vector
 
-// struct for attitude output with a timestamp
+// struct for attitude output
 struct att {
-    float time = micros() / 1.0E6; // time since program started, will overflow after about 35 mins
-    float yaw;                     // yaw in radians
-    float pitch;                   // pitch in radians
-    float roll;                    // roll in radians
+    float time = micros() / 1.0E6; // time since program started
+    float yaw;                           // yaw in degrees
+    float pitch;                         // pitch in degrees
+    float roll;                          // roll in degrees
 };
 
 /** 
  * SETUP MPU6050
- * Initialises MPU, initialises Digital Motion Processor (DMP), and calibrates device.
+ * Initialises MPU, initialises Digital Motion Processor (DMP), calibrates device, enables interrupt detection.
  * The DMP is the onboard processor that computes orientation from the accelerometer and gyro data.
  */
 void mpuSetup() {
@@ -44,7 +44,7 @@ void mpuSetup() {
 
     // initalise the DMP
     dmpStatus = mpu.dmpInitialize();
-    // Check whether DMP initialised successfully (dmpStatus == 0 if successful)
+    // Check whether DMP initialised successfully (devStatus == 0 if successful)
     if(dmpStatus == 0) {
         // calibration: generate offsets and calibrate the MPU6050
         mpu.CalibrateAccel(16);
@@ -65,15 +65,15 @@ void mpuSetup() {
 }
 
 /**
- * Polls the MPU for attitude data then creates an att struct.
- * \return att struct with yaw, pitch, roll in radians and a timstamp in seconds.
+ * Polls the MPU then converts the pitch value to degrees.
+ * \return MPU pitch in degrees 
  */
 att getAttitude() {
     readYPR();
     struct att attitude;
-    attitude.yaw = ypr[0];
-    attitude.pitch = ypr[1];
-    attitude.roll = ypr[2];
+    attitude.yaw = ypr[0] * 180.0/M_PI;
+    attitude.pitch = ypr[1] * 180.0/M_PI;
+    attitude.roll = ypr[2] * 180.0/M_PI;
     return attitude;
 }
 
@@ -104,7 +104,7 @@ void loop() {
     att attitude = getAttitude();
 
     // Display pitch and timestamp
-    Serial.print(attitude.pitch * 180.0/M_PI);
+    Serial.print(attitude.pitch);
     Serial.print(F("\t"));
     Serial.println(attitude.time,6);
 }
