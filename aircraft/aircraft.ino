@@ -1,6 +1,7 @@
 #include <SD.h>
 #include <SPI.h>
 #include <transceiver.h>
+#include <Wire.h>
 #include <I2Cdev.h>
 #include <MPU6050_6Axis_MotionApps20.h>
 #include <Servo.h>
@@ -65,11 +66,11 @@ void setup()
   initSD();
   transceiverSetup(rf69, rf69_manager);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   int mpuStatus = mpuSetup();
 
-  if (mpuStatus != 0) 
+  if(mpuStatus != 0) 
   {
     Serial.println("Error when setting up MPU");
   }
@@ -182,14 +183,27 @@ void loop() {
  * \return device status (0 = success, 1 = initial memory load failed, 2 = DMP configuration updates failed)
  */
 int mpuSetup() {
+  // join I2C bus (I2Cdev library doesn't do this automatically)
+  #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+    Wire.begin();
+    TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+  #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+    Fastwire::setup(400, true);
+  #endif
+
   // intitialise device
   Serial.println(F("Initialising MPU..."));
   mpu.initialize();
-  pinMode(INTERRUPT_PIN, INPUT);
 
   // verify connection
   Serial.println(F("Testing device connections..."));
   Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+
+  // wait for ready
+  Serial.println(F("\nSend any character to begin DMP programming and demo: "));
+  while (Serial.available() && Serial.read()); // empty buffer
+  while (!Serial.available());                 // wait for data
+  while (Serial.available() && Serial.read()); // empty buffer again
 
   // load and configure the DMP
   Serial.println(F("Initialising DMP..."));
@@ -205,19 +219,20 @@ int mpuSetup() {
   // Check whether DMP initialised successfully (returns 0 if successful)
   if(devStatus == 0) {
     // calibration: generate offsets and calibrate the MPU6050
-    mpu.CalibrateAccel(6);
-    mpu.CalibrateGyro(6);
-    mpu.PrintActiveOffsets();
+    // mpu.CalibrateAccel(6);
+    // mpu.CalibrateGyro(6);
+    // mpu.PrintActiveOffsets();
     
     // turn on DMP
     Serial.println(F("Enabling DMP..."));
     mpu.setDMPEnabled(true);
 
     // enable Arduino interrupt detection (we may or may not need this)
-    Serial.print(F("Enabling interrupt detection... (Arduino external interrupt "));
-    Serial.print(F(digitalPinToInterrupt(INTERRUPT_PIN)));
-    Serial.println(F(")..."));
-    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
+    Serial.print(F("Enabling interrupt detection... (Arduino external interrupt 0)..."));
+    // Serial.print(F(digitalPinToInterrupt(INTERRUPT_PIN)));
+    //Serial.println(F(")..."));
+    //attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
+    attachInterrupt(0, dmpDataReady, RISING);
     mpuIntStatus = mpu.getIntStatus();
 
     // set the DMP Ready flag so the main loop() knows it's ok to use it
@@ -258,6 +273,7 @@ void mpuLoop() {
     Serial.print("\t");
     Serial.print(ypr[1] * 180/M_PI);
     Serial.print("\t");
+    Serial.println(ypr[2] * 180/M_PI);
   }
 }
 
@@ -269,7 +285,6 @@ void initSD()
   if (!SD.begin(BUILTIN_SDCARD)) 
   {
     Serial.println("Initialization failed!");
-  }
   else 
   {
     Serial.println("Initialization done");
