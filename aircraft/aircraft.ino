@@ -134,22 +134,22 @@ void loop() {
     {
       //run moment balance
       def = (((M*angacc)/(q*xtail*St))-((xg*m*g)/(q*xtail*St))-(at*ang)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
-    }
 
-    if (def != def_previous) 
-    {
-      //write deflection onto servo after some scaling and limiting
-      if (abs(def) <= lim) 
+      if (def != def_previous) 
       {
-        elevator.write(def);
-      }
-      else if (def > lim) 
-      {
-        elevator.write(lim);
-      }
-      else if (def < (-1*lim)) 
-      {
-        elevator.write((-1*lim));
+        //write deflection onto servo after some scaling and limiting
+        if (abs(def) <= lim) 
+        {
+          elevator.write(def);
+        }
+        else if (def > lim) 
+        {
+          elevator.write(lim);
+        }
+        else if (def < (-1*lim)) 
+        {
+          elevator.write((-1*lim));
+        }
       }
     }
   }
