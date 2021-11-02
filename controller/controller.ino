@@ -1,14 +1,26 @@
+#include <Adafruit_LiquidCrystal.h>
 #include <transceiver.h>
 
-// Set pins for status leds
+// TODO: Set pins
 #define MANUAL_LED_PIN    1
 #define AUTO_LED_PIN      2
+#define POT_CONTROL_PIN   3
+#define SWITCH_PIN        4
 
-#define RADIO_TX_ADDRESS     420
+#define RADIO_TX_ADDRESS     96
 #define RADIO_RX_ADDRESS     69
 
-void setup() {
-  transceiver_setup(RADIO_TX_ADDRESS);
+Adafruit_LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+// Singleton instance of the radio driver
+RH_RF69 rf69(RFM69_CS, RFM69_INT);
+
+// Class to manage message delivery and receipt
+RHReliableDatagram rf69_manager(rf69, RADIO_TX_ADDRESS);
+
+void setup() 
+{
+  transceiverSetup(rf69, rf69_manager);
 
   // display 0 degrees angle after setup
   displayDeflectionAngle(0);
@@ -21,7 +33,8 @@ int mode = 1;
 
 int potValue = 0;
 
-void loop() { 
+void loop() 
+{ 
   int switchPos = getSwitchPosition();
   
   // If the switch is on Manual mode
@@ -34,7 +47,7 @@ void loop() {
       String cmd = "Manual";
       String responseExpected = "Manual Mode Activated!";
   
-      String response = transmit(RADIO_RX_ADDRESS, cmd);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
       if (response == responseExpected) 
       {
@@ -42,13 +55,15 @@ void loop() {
         // switch Auto status led OFF
         statusLEDS(true, false);
          
-        // log success
+        Serial.println("Transmission successful!");
+        Serial.print("Response: ");
+        Serial.println(response);
       }
     }
 
-    // if potentiometer value has changed
     int currentPotValue = getCurrentPotValue();
     
+    // if potentiometer value has changed
     if (currentPotValue != potValue) 
     {
       // TODO: also add some tolerance, pot value might fluctuate even when potentiometer is still??
@@ -59,16 +74,18 @@ void loop() {
 
       String responseExpected = "PotValue: " + potValueString;
 
-      String response = transmit(RADIO_RX_ADDRESS, potValueString);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, potValueString);
 
       if (response == responseExpected) 
       {
-        // blink Manual status led 1 time, 20 + 20ms delay
+        // blink Manual status led  1 time, 20 + 20ms delay
         Blink(MANUAL_LED_PIN, 20, 1);
 
         displayDeflectionAngle(potValue);
         
-        // log success
+        Serial.println("Transmission successful!");
+        Serial.print("Response: ");
+        Serial.println(response);
       }  
     }
 
@@ -84,7 +101,7 @@ void loop() {
       String cmd = "Auto";
       String responseExpected = "Auto Mode Activated!";
   
-      String response = transmit(RADIO_RX_ADDRESS, cmd);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
       if (response == responseExpected) 
       {
@@ -92,7 +109,9 @@ void loop() {
         // switch Manual status led OFF
         statusLEDS(false, true);
         
-        // log success
+        Serial.println("Transmission successful!");
+        Serial.print("Response: ");
+        Serial.println(response);
       } 
     }
 
@@ -108,7 +127,7 @@ void loop() {
       String cmd = "Neutral";
       String responseExpected = "Neutral Mode Activated!";
   
-      String response = transmit(RADIO_RX_ADDRESS, cmd);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
       if (response == responseExpected) 
       {
@@ -116,33 +135,73 @@ void loop() {
         // switch Manual status led OFF
         statusLEDS(false, false);
         
-        // log success
+        Serial.println("Transmission successful!");
+        Serial.print("Response: ");
+        Serial.println(response);
       } 
     }
     
     mode = 1;    
   }
-
-  // TODO: Receive if needed
-  //receive(data);
 }
 
-int getSwitchPosition() {
+int getSwitchPosition() 
+{
+  int switchState = 0;
 
-  // return the switch position
-  return 1;
+  // TODO: input switch location
+  pinMode(SWITCH_PIN, INPUT);
+
+  switchState = digitalRead(SWITCH_PIN);
+
+  if (switchState == LOW) 
+  {
+    // switch at Manual
+    return 0;
+  }
+  else if (switchState == HIGH)
+  {
+    // switch at Auto
+    return 2;
+  }
+  else /*if (switchState == )*/
+  { 
+    // switch at Neutral
+    // TODO: 3-phase switch readings?
+    return 1;
+  }
+
+  // TODO: error message
+  return -1;
 }
 
-int getCurrentPotValue() {
+int getCurrentPotValue() 
+{
+  int potVal = 0;
+
+  Serial.begin(9600);
+
+  potVal = analogRead(POT_CONTROL_PIN);
+  Serial.print("potVal: ");
+  Serial.println(potVal);
 
   // return the potentiometer value
-  return 0;
+  return potVal;
 }
 
 void displayDeflectionAngle(int potValue) {
   // calculate the angle from the potentiometer voltage 
   // display the angle
-  // log the angle
+
+  int displayDefAngle = map(potValue, 0, 1023, 0, 179);
+  int displayPitchAngle = // TODO: pitch angle input
+
+  lcd.begin(16, 2);
+  lcd.print("Elevator deflection angle: ");
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.println(displayAngle);
+  lcd.setCursor(0,1);
 }
 
 void statusLEDS(bool manualLedOn, bool autoLedOn) {

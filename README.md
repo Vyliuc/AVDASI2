@@ -1,4 +1,4 @@
-# AVADASI 2 Team 4
+# AVDASI 2 Team 4
 
 The application will be divided into 2 parts: 
 - Controller side

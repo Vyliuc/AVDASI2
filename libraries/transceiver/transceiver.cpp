@@ -1,9 +1,9 @@
 #include "transceiver.h"
 
-void transceiver_setup(int RADIO_TX_ADDRESS)
-{
-  rf69_manager = new RHReliableDatagram(rf69, RADIO_TX_ADDRESS);
+uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
 
+void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager)
+{
   Serial.begin(115200);
   //while (!Serial) { delay(1); } // wait until serial console is open, remove if not tethered to computer
 
@@ -20,7 +20,7 @@ void transceiver_setup(int RADIO_TX_ADDRESS)
   digitalWrite(RFM69_RST, LOW);
   delay(10);
 
-  if (!rf69_manager->init()) {
+  if (!rf69_manager.init()) {
       Serial.println("RFM69 radio init failed");
       while (1);
   }
@@ -45,26 +45,27 @@ void transceiver_setup(int RADIO_TX_ADDRESS)
   Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 }
 
-String transmit(int RADIO_RX_ADDRESS, String msg) 
+String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg) 
 {
-  delay(1000);  // Wait 1 second between transmits, could also 'sleep' here!
+  // Wait 1 second between transmits, could also 'sleep' here!
+  delay(1000);
+  
+  const char* radiopacket = msg.c_str();
 
-  //char radiopacket[20] = "Hello World #";
-
-  //itoa(packetnum++, radiopacket + 13, 10);
   Serial.print("Sending "); 
-  //Serial.println(radiopacket);
-  Serial.println(msg);
-
-  uint8_t msgInt = atoi(msg.c_str());
+  Serial.print(radiopacket);
+  Serial.print(" to "); 
+  Serial.println(RADIO_RX_ADDRESS);
 
   // Send a message to the DESTINATION!
-  if (rf69_manager->sendtoWait((uint8_t*)msgInt, sizeof(msgInt), RADIO_RX_ADDRESS)) 
+  if (rf69_manager.sendtoWait((uint8_t*)radiopacket, strlen(radiopacket), RADIO_RX_ADDRESS)) 
   {
+      Serial.println("Message sent. Waiting for a reply... "); 
       // Now wait for a reply from the server
       uint8_t len = sizeof(buf);
       uint8_t from;
-      if (rf69_manager->recvfromAckTimeout(buf, &len, 2000, &from)) {
+
+      if (rf69_manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
           buf[len] = 0; // zero out remaining string
 
           Serial.print("Got reply from #"); Serial.print(from);
@@ -87,16 +88,17 @@ String transmit(int RADIO_RX_ADDRESS, String msg)
   return "";
 }
 
-String receive()
+String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitch)
 {
-  if (rf69_manager->available())
+  if (rf69_manager.available())
   {
+    Serial.println("Waiting for the message... ");
     // Wait for a message addressed to us from the client
     uint8_t len = sizeof(buf);
     uint8_t from;
     String responseMsg = "";
 
-    if (rf69_manager->recvfromAck(buf, &len, &from)) {
+    if (rf69_manager.recvfromAck(buf, &len, &from)) {
       buf[len] = 0; // zero out remaining string
       
       Serial.print("Got packet from #"); Serial.print(from);
@@ -106,11 +108,12 @@ String receive()
       Serial.println((char*)buf);
       Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
-      responseMsg = getResponseMsg(String((char*)buf));
-      uint8_t responseMsgInt = atoi(responseMsg.c_str());
+      responseMsg = getResponseMsg(String((char*)buf), pitch);
+
+      const char* responseMsgChar = responseMsg.c_str();
 
       // Send a reply back to the originator cliet
-      if (!rf69_manager->sendtoWait((uint8_t*)responseMsgInt, sizeof(responseMsgInt), from)) 
+      if (!rf69_manager.sendtoWait((uint8_t*)responseMsgChar, strlen(responseMsgChar), from)) 
       {
         Serial.println("Sending failed (no ack)");
       }
@@ -132,11 +135,13 @@ void Blink(byte PIN, byte DELAY_MS, byte loops) {
   }
 }
 
-String getResponseMsg(String msg) 
+String getResponseMsg(String msg, int pitch) 
 {
-  if (msg == "Manual") return "Manual Mode Activated!";
-  else if (msg == "Auto") return "Auto Mode Activated!";
-  else if (msg == "Neutral") return "Neutral Mode Activated!";
-  else if (msg.indexOf("PotValue:") != -1) return msg;
+  String pitchValString = String(pitch);
+  String pitchVal = "Pitch Angle: " + pitcValString;
+  if (msg == "Manual") return ("Manual Mode Activated!" + pitchVal);
+  else if (msg == "Auto") return ("Auto Mode Activated!" + pitchVal);
+  else if (msg == "Neutral") return ("Neutral Mode Activated!" + pitchVal);
+  else if (msg.indexOf("PotValue:") != -1) return (msg + pitchVal);
   else return "";
 }
