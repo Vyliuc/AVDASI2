@@ -194,9 +194,32 @@ void displayDeflectionAngle(int potValue) {
   // calculate the angle from the potentiometer voltage 
   // display the angle
 
+  int displaySwitchState = analogRead(POT_CONTROL_PIN);
+  int displayPrevSwitchState = 0; 
+
   int displayDefAngle = map(potValue, 0, 1023, 0, 179);
   int displayPitchAngle = // TODO: pitch angle input
 
+  lcd.begin(16, 2);
+  pinMode(switchPin, INPUT);
+
+  lcd.print("Deflection angle");
+  lcd.setCursor(0, 1);
+  lcd.print("Pitch angle");
+
+  if(switchState != prevSwitchState){
+      lcd.clear();
+      lcd.setCursor(0, 0);
+
+    lcd.print("Deflection:  5.0");
+    lcd.setCursor(0, 1);
+    lcd.print("Pitch:       2.0");      
+    }
+  }
+  displayPrevSwitchState = displaySwitchState;
+}
+ 
+ prevSwitchState = switchState;
   lcd.begin(16, 2);
   lcd.print("Elevator deflection angle: ");
   lcd.clear();
