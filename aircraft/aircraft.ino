@@ -95,14 +95,15 @@ void loop() {
   float angacc = 10;
   
   // constantly listen to the transceiver & check if any data has been received
-  String response = receive(rf69, rf69_manager);
+  String response = receive(rf69, rf69_manager, ang);
 
   // set the mode
   if (response == "Manual") 
   {
     mode = 0;
   }
-  else if (response == "Auto") 
+  
+    else if (response == "Auto") 
   {
     mode = 2;
   }
@@ -287,4 +288,21 @@ void logToSD(String msg)
   {
     Serial.println("Error opening logs.txt");
   }
+}
+
+
+int getIntFromString(String str) 
+{
+  //function to extract number from string
+
+  //search for the first digit
+  size_t i = 0;
+  for ( ; i < str.length(); i++ ){ if ( isdigit(str[i]) ) break; }
+
+  // remove the first characters, which aren't digits
+  str = str.substring(i, str.length() - i );
+
+  // convert the remaining text to an integer
+  int id = atoi(str.c_str());
+  return (id);
 }
