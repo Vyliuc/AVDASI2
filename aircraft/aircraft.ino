@@ -44,6 +44,15 @@ void mpuSetup() {
 
     // initalise the DMP
     dmpStatus = mpu.dmpInitialize();
+
+    // calibrated offsets
+    mpu.setXAccelOffset(-1471);
+    mpu.setYAccelOffset(-2535);
+    mpu.setZAccelOffset(16382);
+    mpu.setXGyroOffset(35);
+    mpu.setYGyroOffset(23);
+    mpu.setZGyroOffset(14);
+
     // Check whether DMP initialised successfully (devStatus == 0 if successful)
     if(dmpStatus == 0) {
         // calibration: generate offsets and calibrate the MPU6050
@@ -89,7 +98,8 @@ void readYPR() {
         // Get yaw, pitch, roll from DMP
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
-        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+        //mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+        mpu.dmpGetEuler(ypr, &q);
     }
 }
 
@@ -104,7 +114,11 @@ void loop() {
     att attitude = getAttitude();
 
     // Display pitch and timestamp
+    Serial.print(attitude.yaw);
+    Serial.print(F("\t"));
     Serial.print(attitude.pitch);
+    Serial.print(F("\t"));
+    Serial.print(attitude.roll);
     Serial.print(F("\t"));
     Serial.println(attitude.time,6);
 }
