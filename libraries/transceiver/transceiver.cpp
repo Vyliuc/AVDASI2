@@ -88,7 +88,7 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
   return "";
 }
 
-String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager)
+String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitch)
 {
   if (rf69_manager.available())
   {
@@ -108,7 +108,7 @@ String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager)
       Serial.println((char*)buf);
       Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
-      responseMsg = getResponseMsg(String((char*)buf));
+      responseMsg = getResponseMsg(String((char*)buf), pitch);
 
       const char* responseMsgChar = responseMsg.c_str();
 
@@ -135,11 +135,13 @@ void Blink(byte PIN, byte DELAY_MS, byte loops) {
   }
 }
 
-String getResponseMsg(String msg) 
+String getResponseMsg(String msg, int pitch) 
 {
-  if (msg == "Manual") return "Manual Mode Activated!";
-  else if (msg == "Auto") return "Auto Mode Activated!";
-  else if (msg == "Neutral") return "Neutral Mode Activated!";
-  else if (msg.indexOf("PotValue:") != -1) return msg;
+  String pitchValString = String(pitch);
+  String pitchVal = "Pitch Angle: " + pitcValString;
+  if (msg == "Manual") return ("Manual Mode Activated!" + pitchVal);
+  else if (msg == "Auto") return ("Auto Mode Activated!" + pitchVal);
+  else if (msg == "Neutral") return ("Neutral Mode Activated!" + pitchVal);
+  else if (msg.indexOf("PotValue:") != -1) return (msg + pitchVal);
   else return "";
 }

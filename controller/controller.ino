@@ -78,7 +78,7 @@ void loop()
 
       if (response == responseExpected) 
       {
-        // blink Manual status led 1 time, 20 + 20ms delay
+        // blink Manual status led  1 time, 20 + 20ms delay
         Blink(MANUAL_LED_PIN, 20, 1);
 
         displayDeflectionAngle(potValue);

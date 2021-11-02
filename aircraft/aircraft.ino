@@ -77,7 +77,7 @@ void setup()
 
   elevator.attach(SERVO_PIN);
 }
-  float refPotVal=0;
+float refPotVal=0;
 void loop() {
   // Display roll, pitch, yaw from MPU
   mpuLoop();
@@ -88,7 +88,7 @@ void loop() {
   float angacc = 10;
   
   // constantly listen to the transceiver & check if any data has been received
-  String response = receive(rf69, rf69_manager);
+  String response = receive(rf69, rf69_manager, ang);
 
   // set the mode
   if (response == "Manual") 
