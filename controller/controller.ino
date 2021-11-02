@@ -1,16 +1,31 @@
 #include <Adafruit_LiquidCrystal.h>
 #include <transceiver.h>
 
-// TODO: Set pins
-#define MANUAL_LED_PIN    1
-#define AUTO_LED_PIN      2
-#define POT_CONTROL_PIN   3
-#define SWITCH_PIN        4
+// LEDs pins
+#define MANUAL_LED_PIN    31
+#define AUTO_LED_PIN      32
+
+// Potentiometer pin
+#define POT_CONTROL_PIN   41
+
+// Buttons pins
+//#define SWITCH_PIN        4
+#define MANUAL_BTN_PIN    2
+#define AUTO_BTN_PIN      3
+#define NEUTRAL_BTN_PIN   5
+
+// LCD pins
+#define LCD_RS_PIN        6       
+#define LCD_EN_PIN        8
+#define LCD_WRITE1_PIN    7 
+#define LCD_WRITE2_PIN    28
+#define LCD_WRITE3_PIN    29
+#define LCD_WRITE4_PIN    30
 
 #define RADIO_TX_ADDRESS     96
 #define RADIO_RX_ADDRESS     69
 
-Adafruit_LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+Adafruit_LiquidCrystal lcd(LCD_RS_PIN, LCD_EN_PIN, LCD_WRITE1_PIN, LCD_WRITE2_PIN, LCD_WRITE3_PIN, LCD_WRITE4_PIN);
 
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
@@ -21,7 +36,7 @@ RHReliableDatagram rf69_manager(rf69, RADIO_TX_ADDRESS);
 void setup() 
 {
   transceiverSetup(rf69, rf69_manager);
-
+  
   // display 0 degrees angle after setup
   displayDeflectionAngle(0);
 }
@@ -36,6 +51,7 @@ int potValue = 0;
 void loop() 
 { 
   int switchPos = getSwitchPosition();
+  int pitchAngle = 0;
   
   // If the switch is on Manual mode
   if (switchPos == 0)
@@ -45,12 +61,14 @@ void loop()
     {
       // Transmit the instructions to activate a Manual mode on aircraft
       String cmd = "Manual";
-      String responseExpected = "Manual Mode Activated!";
   
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
-      if (response == responseExpected) 
+      if (response.indexOf("Manual Mode Activated!")) 
       {
+        // update the pitch angle
+        pitchAngle = getIntFromString(response, "Pitch Angle: ");
+
         // switch Manual status led ON
         // switch Auto status led OFF
         statusLEDS(true, false);
@@ -70,14 +88,15 @@ void loop()
       potValue = currentPotValue;
 
       // convert the pot value to string
-      String potValueString = String(potValue);
-
-      String responseExpected = "PotValue: " + potValueString;
+      String potValueString = "PotValue: " + String(potValue);
 
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, potValueString);
 
-      if (response == responseExpected) 
+      if (response.indexOf("PotValue: ")) 
       {
+        // update the pitch angle
+        pitchAngle = getIntFromString(response, "Pitch Angle: ");
+
         // blink Manual status led  1 time, 20 + 20ms delay
         Blink(MANUAL_LED_PIN, 20, 1);
 
@@ -99,12 +118,14 @@ void loop()
     {
       // Transmit the instructions to activate an Auto mode on aircraft
       String cmd = "Auto";
-      String responseExpected = "Auto Mode Activated!";
   
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
-      if (response == responseExpected) 
+      if (response.indexOf("Auto Mode Activated!")) 
       {
+        // update the pitch angle
+        pitchAngle = getIntFromString(response, "Pitch Angle: ");
+
         // switch Auto status led ON
         // switch Manual status led OFF
         statusLEDS(false, true);
@@ -125,12 +146,14 @@ void loop()
     {
       // Transmit the instructions to activate a Neutral mode on aircraft
       String cmd = "Neutral";
-      String responseExpected = "Neutral Mode Activated!";
   
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
-      if (response == responseExpected) 
+      if (response.indexOf("Neutral Mode Activated!")) 
       {
+        // update the pitch angle
+        pitchAngle = getIntFromString(response, "Pitch Angle: ");
+
         // switch Auto status led OFF
         // switch Manual status led OFF
         statusLEDS(false, false);
@@ -147,22 +170,22 @@ void loop()
 
 int getSwitchPosition() 
 {
-  int switchState = 0;
+  int manualState = 0;
 
-  // TODO: input switch location
-  pinMode(SWITCH_PIN, INPUT);
+  pinMode(MANUAL_BTN_PIN, INPUT);
 
-  switchState = digitalRead(SWITCH_PIN);
+  manualState = digitalRead(MANUAL_BTN_PIN);
 
-  if (switchState == LOW) 
+  if (manualState == LOW) 
   {
-    // switch at Manual
-    return 0;
+    // switch to Neutral
+    return 1;
   }
-  else if (switchState == HIGH)
+  else if (manualState == HIGH)
   {
-    // switch at Auto
-    return 2;
+    Serial.println("Button is HIGH");
+    // switch to Manual
+    return 0;
   }
   else /*if (switchState == )*/
   { 
@@ -170,9 +193,6 @@ int getSwitchPosition()
     // TODO: 3-phase switch readings?
     return 1;
   }
-
-  // TODO: error message
-  return -1;
 }
 
 int getCurrentPotValue() 
@@ -192,30 +212,78 @@ int getCurrentPotValue()
 void displayDeflectionAngle(int potValue) {
   // calculate the angle from the potentiometer voltage 
   // display the angle
-
+  Serial.begin(9600);
+  Serial.println("I have reached the LCD!");
   int displayDefAngle = map(potValue, 0, 1023, 0, 179);
-  int displayPitchAngle = // TODO: pitch angle input
+  int displayPitchAngle = 0;// TODO: pitch angle input
 
   lcd.begin(16, 2);
-  lcd.print("Elevator deflection angle: ");
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.println(displayAngle);
-  lcd.setCursor(0,1);
+  lcd.print("Deflection angle:");
+  lcd.setCursor(0, 1);
+  lcd.print(displayDefAngle);
 }
 
 void statusLEDS(bool manualLedOn, bool autoLedOn) {
-  if (manualLedOn) {
+  if (manualLedOn) 
+  {
+    Serial.println("Manual LED on!");
     digitalWrite(MANUAL_LED_PIN, HIGH);
   }
-  else {
+  else 
+  {
+    Serial.println("Manual LED off!");
     digitalWrite(MANUAL_LED_PIN, LOW);
   }
 
-  if (autoLedOn) {
+  if (autoLedOn) 
+  {
+    Serial.println("Auto LED on!");
     digitalWrite(AUTO_LED_PIN, HIGH);
   }
-  else {
+  else 
+  {
+    Serial.println("Auto LED off!");
     digitalWrite(AUTO_LED_PIN, LOW);
   }
+}
+
+int getIntFromString(String str, String startPhrase) 
+{
+  //function to extract number from string
+  int index = str.indexOf(startPhrase);
+  String substr = str.substring(index);
+
+  int intStartIndex = -1;
+  int intEndIndex = -1;
+  int intToReturn = 0;
+
+  for (int i = 0 ; i < substr.length(); i++) 
+  {
+    if (isdigit(substr[i]))
+    {
+      if (intStartIndex == -1) 
+      {
+        intStartIndex = i;
+      }
+
+      if ((i + 1) <= (substr.length() - 1))
+      {
+        if (!isdigit(substr[i+1]))
+        {
+          intEndIndex = i + 1;
+        }
+      }
+      else 
+      {
+        intEndIndex = i;
+      }
+    }
+  }
+
+  substr = substr.substring(intStartIndex, intEndIndex);
+
+  // convert the remaining text to an integer
+  intToReturn = atoi(substr.c_str());
+  
+  return intToReturn;
 }

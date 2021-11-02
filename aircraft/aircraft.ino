@@ -8,7 +8,8 @@
 
 // TODO: set pins
 #define INTERRUPT_PIN        2 
-#define SERVO_PIN            3
+
+#define SERVO_PIN            23
 
 #define RADIO_TX_ADDRESS     69
 #define RADIO_RX_ADDRESS     96
@@ -33,10 +34,10 @@ float ypr[3];        // [yaw, pitch, roll]  yaw/pitch/roll container and gravity
 
 // struct for attitude output
 struct att {
-    float time = micros() / 1.0E6; // time since program started
-    float yaw;                           // yaw in degrees
-    float pitch;                         // pitch in degrees
-    float roll;                          // roll in degrees
+  float time = micros() / 1.0E6; // time since program started
+  float yaw;                           // yaw in degrees
+  float pitch;                         // pitch in degrees
+  float roll;                          // roll in degrees
 };
 
 // horizontal balance variables
@@ -80,6 +81,11 @@ void loop() {
   // Get roll, pitch, yaw from MPU
   att attitude = getAttitude();
 
+  //receive values for pitch data - WAITING ON HAMISH
+  float ang = attitude.pitch;
+  float angvel = 10;
+  float angacc = 10;
+
   // Display pitch and timestamp
   Serial.print(attitude.yaw);
   Serial.print(F("\t"));
@@ -88,45 +94,45 @@ void loop() {
   Serial.print(attitude.roll);
   Serial.print(F("\t"));
   Serial.println(attitude.time,6);
-
-  //receive values for pitch data - WAITING ON HAMISH
-  float ang = attitude.pitch;
-  float angvel = 10;
-  float angacc = 10;
   
   // constantly listen to the transceiver & check if any data has been received
   String response = receive(rf69, rf69_manager, ang);
 
   // set the mode
-  if (response == "Manual") 
+  if (response.indexOf("Manual Mode Activated!")) 
   {
     mode = 0;
   }
-  
-    else if (response == "Auto") 
+  else if (response.indexOf("Auto Mode Activated!")) 
   {
     mode = 2;
   }
-  else if (response == "Neutral") 
+  else if (response.indexOf("Neutral Mode Activated!")) 
   {
     mode = 1;
   }
   
   //MANUAL MODE
   //search for whether it contains "PotValue:"
-  String key = "PotValue:";
   //if it contains the key, and manual mode is active, use getIntFromString and write the potvalue to the servo
-  if (response.indexOf(key) != -1 && mode == 0) 
+  if (response.indexOf("PotValue: ") && mode == 0) 
   {
-    float currentPotVal = getIntFromString(response);
-
+    float currentPotVal = 0;
+    float deflAngle = 0; 
+    
+    currentPotVal = getIntFromString(response, "PotValue: ");
     refPotVal = currentPotVal;
 
     // scale it to use it with the servo (value between 0 and 180)
-    float angle = map(currentPotVal, 0, 1023, 0, 180);  
+    deflAngle = map(currentPotVal, 0, 1023, 0, 180);  
+
+    Serial.print("Pot Value: ");
+    Serial.println(currentPotVal);
+    Serial.print("Deflection angle: ");
+    Serial println(deflAngle);
 
     // sets the servo position according to the scaled value   
-    elevator.write(angle);
+    elevator.write(deflAngle);
   } 
 
   //AUTO MODE
@@ -138,11 +144,19 @@ void loop() {
     // calculate error (in this case, excess moment)
     error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
     
+    Serial.print("Previous deflection: ");
+    Serial.println(def_previous);
+    Serial.print("Excess moment: ");
+    Serial.println(error);
+
     //while the error is non zero, loop over moment balance until it's zero
     if (error != 0) 
     {
       //run moment balance
       def = (((M*angacc)/(q*xtail*St))-((xg*m*g)/(q*xtail*St))-(at*ang)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
+
+      Serial.print("Deflection needed: ");
+      Serial.println(def);
 
       if (def != def_previous) 
       {
@@ -168,20 +182,6 @@ void loop() {
   {
     elevator.write(0);
   }
-
-  //print to serial monitor for debug
-  Serial.print("potentiometer = ");
-  Serial.print(refPotVal);
-  Serial.print("\t del = ");
-  Serial.print(def);
-  Serial.print("\t pitch =");
-  Serial.print(ang);
-  Serial.print("\t vel =");
-  Serial.print(angvel);
-  Serial.print("\t acc =");
-  Serial.print(angacc);
-  Serial.print("\t error =")
-  Serial.println(error);
 }
 
 /** 
@@ -234,12 +234,12 @@ void mpuSetup() {
  * \return MPU pitch in degrees 
  */
 att getAttitude() {
-    readYPR();
-    struct att attitude;
-    attitude.yaw = ypr[0] * 180.0/M_PI;
-    attitude.pitch = ypr[1] * 180.0/M_PI;
-    attitude.roll = ypr[2] * 180.0/M_PI;
-    return attitude;
+  readYPR();
+  struct att attitude;
+  attitude.yaw = ypr[0] * 180.0/M_PI;
+  attitude.pitch = ypr[1] * 180.0/M_PI;
+  attitude.roll = ypr[2] * 180.0/M_PI;
+  return attitude;
 }
 
 /**
@@ -247,16 +247,16 @@ att getAttitude() {
  * Updates the global ypr[] array.
  */
 void readYPR() {
-    // If MPU setup failed, don't do anything
-    if (!dmpReady) return;
-    // Read a packet from FIFO
-    if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // get the latest packet
-        // Get yaw, pitch, roll from DMP
-        mpu.dmpGetQuaternion(&q, fifoBuffer);
-        mpu.dmpGetGravity(&gravity, &q);
-        //mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-        mpu.dmpGetEuler(ypr, &q);
-    }
+  // If MPU setup failed, don't do anything
+  if (!dmpReady) return;
+  // Read a packet from FIFO
+  if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // get the latest packet
+      // Get yaw, pitch, roll from DMP
+      mpu.dmpGetQuaternion(&q, fifoBuffer);
+      mpu.dmpGetGravity(&gravity, &q);
+      //mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+      mpu.dmpGetEuler(ypr, &q);
+  }
 }
 
 void initSD()
@@ -290,19 +290,43 @@ void logToSD(String msg)
   }
 }
 
-
-int getIntFromString(String str) 
+int getIntFromString(String str, String startPhrase) 
 {
   //function to extract number from string
+  int index = str.indexOf(startPhrase);
+  String substr = str.substring(index);
 
-  //search for the first digit
-  size_t i = 0;
-  for ( ; i < str.length(); i++ ){ if ( isdigit(str[i]) ) break; }
+  int intStartIndex = -1;
+  int intEndIndex = -1;
+  int intToReturn = 0;
 
-  // remove the first characters, which aren't digits
-  str = str.substring(i, str.length() - i );
+  for (int i = 0 ; i < substr.length(); i++) 
+  {
+    if (isdigit(substr[i]))
+    {
+      if (intStartIndex == -1) 
+      {
+        intStartIndex = i;
+      }
+
+      if ((i + 1) <= (substr.length() - 1))
+      {
+        if (!isdigit(substr[i+1]))
+        {
+          intEndIndex = i + 1;
+        }
+      }
+      else 
+      {
+        intEndIndex = i;
+      }
+    }
+  }
+
+  substr = substr.substring(intStartIndex, intEndIndex);
 
   // convert the remaining text to an integer
-  int id = atoi(str.c_str());
-  return (id);
+  intToReturn = atoi(substr.c_str());
+  
+  return intToReturn;
 }
