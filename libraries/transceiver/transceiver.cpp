@@ -47,8 +47,8 @@ void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager)
 
 String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg) 
 {
-  // Wait 1 second between transmits, could also 'sleep' here!
-  delay(1000);
+  // Wait 100 ms between transmits, could also 'sleep' here!
+  delay(100);
   
   const char* radiopacket = msg.c_str();
 
@@ -88,7 +88,7 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
   return "";
 }
 
-String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitch)
+String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle)
 {
   if (rf69_manager.available())
   {
@@ -108,7 +108,7 @@ String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitch)
       Serial.println((char*)buf);
       Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
-      responseMsg = getResponseMsg(String((char*)buf), pitch);
+      responseMsg = getResponseMsg(String((char*)buf), pitchAngle);
 
       const char* responseMsgChar = responseMsg.c_str();
 
@@ -135,10 +135,11 @@ void Blink(byte PIN, byte DELAY_MS, byte loops) {
   }
 }
 
-String getResponseMsg(String msg, int pitch) 
+String getResponseMsg(String msg, int pitchAngle) 
 {
-  String pitchValString = String(pitch);
-  String pitchVal = "Pitch Angle: " + pitcValString;
+  String pitchValString = String(pitchAngle);
+  String pitchVal = " Pitch Angle: " + pitchValString;
+  
   if (msg == "Manual") return ("Manual Mode Activated!" + pitchVal);
   else if (msg == "Auto") return ("Auto Mode Activated!" + pitchVal);
   else if (msg == "Neutral") return ("Neutral Mode Activated!" + pitchVal);
