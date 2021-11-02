@@ -1,4 +1,4 @@
-#include <LiquidCrystal.h>
+#include <Adafruit_LiquidCrystal.h>
 #include <transceiver.h>
 
 // TODO: Set pins
@@ -10,7 +10,7 @@
 #define RADIO_TX_ADDRESS     96
 #define RADIO_RX_ADDRESS     69
 
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+Adafruit_LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
@@ -164,12 +164,15 @@ int getSwitchPosition()
     // switch at Auto
     return 2;
   }
-  else
+  else /*if (switchState == )*/
   { 
     // switch at Neutral
     // TODO: 3-phase switch readings?
     return 1;
   }
+
+  // TODO: error message
+  return -1;
 }
 
 int getCurrentPotValue() 
@@ -190,7 +193,8 @@ void displayDeflectionAngle(int potValue) {
   // calculate the angle from the potentiometer voltage 
   // display the angle
 
-  int displayAngle = map(potValue, 0, 1023, 0, 179);
+  int displayDefAngle = map(potValue, 0, 1023, 0, 179);
+  int displayPitchAngle = // TODO: pitch angle input
 
   lcd.begin(16, 2);
   lcd.print("Elevator deflection angle: ");
