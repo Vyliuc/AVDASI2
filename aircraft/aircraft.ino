@@ -19,13 +19,22 @@ uint8_t fifoBuffer[64]; // FIFO storage buffer
 Quaternion q;        // [w, x, y, z]        quaternion container
 VectorFloat gravity; // [x, y, z]           gravity vector
 float ypr[3];        // [yaw, pitch, roll]  yaw/pitch/roll container and gravity vector
+float vel[3];        // [vx, vy, vz]        angular velocity vector
+float acc[3];        // [ax, ay, az]        angular acceleration vector
+float time[2];       // [current, last]     timestamp container
 
 // struct for attitude output
 struct att {
-    float time = micros() / 1.0E6; // time since program started
-    float yaw;                           // yaw in degrees
-    float pitch;                         // pitch in degrees
-    float roll;                          // roll in degrees
+    float time;     // time since program started
+    float yaw;      // yaw in degrees
+    float pitch;    // pitch in degrees
+    float roll;     // roll in degrees
+    float yawVel;   // yaw rate in degrees/second
+    float pitchVel; // pitch rate in degrees/second
+    float rollVel;  // roll rate in degrees/second
+    float yawAcc;   // yaw angular acceleration in degrees/second^2
+    float pitchAcc; // pitch angular acceleration in degrees/second^2
+    float rollAcc;   // roll angular acceleration in degrees/second^2
 };
 
 /** 
@@ -79,11 +88,18 @@ void mpuSetup() {
  */
 att getAttitude() {
     readYPR();
-    struct att attitude;
-    attitude.yaw = ypr[0] * 180.0/M_PI;
-    attitude.pitch = ypr[1] * 180.0/M_PI;
-    attitude.roll = ypr[2] * 180.0/M_PI;
-    return attitude;
+    struct att a;
+    a.time = time[0];
+    a.yaw = ypr[0] * 180.0/M_PI;
+    a.pitch = ypr[1] * 180.0/M_PI;
+    a.roll = ypr[2] * 180.0/M_PI;
+    a.yawVel = vel[0] * 180.0/M_PI;
+    a.pitchVel = vel[1] * 180.0/M_PI;
+    a.rollVel = vel[2] * 180.0/M_PI;
+    a.yawAcc = acc[0] * 180.0/M_PI;
+    a.pitchAcc = acc[1] * 180.0/M_PI;
+    a.rollAcc = acc[2] * 180.0/M_PI;
+    return a;
 }
 
 /**
@@ -95,11 +111,28 @@ void readYPR() {
     if (!dmpReady) return;
     // Read a packet from FIFO
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // get the latest packet
+        // Log timestamp
+        timeStamp(time);
         // Get yaw, pitch, roll from DMP
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
-        //mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-        mpu.dmpGetEuler(ypr, &q);
+        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+        // Differentiate to find velocity and acceleration
+        diff(ypr, vel, time);
+        diff(vel, acc, time);
+    }
+}
+
+void timeStamp(float *time) {
+    // time[0] stores current time value, time[1] stored the last time value
+    time[1] = time[0];
+    time[0] = micros()/1.0E6; // seconds passed since program started
+}
+
+void diff(float *input, float *result, float *time) {
+    float interval = time[0] - time[1];
+    for(uint8_t i = 0; i < sizeof(input); i++) {
+        result[i] = input[i] / interval;
     }
 }
 
@@ -114,11 +147,11 @@ void loop() {
     att attitude = getAttitude();
 
     // Display pitch and timestamp
-    Serial.print(attitude.yaw);
+    Serial.print(attitude.pitch,4);
     Serial.print(F("\t"));
-    Serial.print(attitude.pitch);
+    Serial.print(attitude.pitchVel,4);
     Serial.print(F("\t"));
-    Serial.print(attitude.roll);
+    Serial.print(attitude.pitchAcc,4);
     Serial.print(F("\t"));
     Serial.println(attitude.time,6);
 }
