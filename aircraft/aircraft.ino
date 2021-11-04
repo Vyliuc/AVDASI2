@@ -56,7 +56,7 @@ float q = 0.5*rho*(pow(V,2)); // dynamic pressure (MAY BE VARIABLE LATER - MOVE 
 float def = 0; // initial elevator deflection
 float error = 0; // excess moment from the balance of moments
 float const lim = 180; //elevator deflection limit (change as required)
-float M = 0; //second moment of area (REQUEST FROM CAD TEAM)
+float M = 19208; //estimated moment of inertia (upper estimate 24010, lower estimate 19208)
 float refPotVal = 0;
 
 int mode = 1; //gives current mode
