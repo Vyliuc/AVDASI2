@@ -170,27 +170,38 @@ void loop()
 
 int getSwitchPosition() 
 {
-  int manualState = 0;
+  int manualMode = 0;
+  int autoMode = 0;
+  int neutralMode = 0;
 
   pinMode(MANUAL_BTN_PIN, INPUT);
+  pinMode(AUTO_BTN_PIN, INPUT);
+  pinMode(NEUTRAL_BTN_PIN, INPUT);
 
-  manualState = digitalRead(MANUAL_BTN_PIN);
+  manualMode = digitalRead(MANUAL_BTN_PIN);
+  autoMode = digitalRead(AUTO_BTN_PIN);
+  neutralMode = digitalRead(NEUTRAL_BTN_PIN);
 
-  if (manualState == LOW) 
+  if (manualMode == HIGH) 
   {
-    // switch to Neutral
-    return 1;
-  }
-  else if (manualState == HIGH)
-  {
-    Serial.println("Button is HIGH");
     // switch to Manual
+    Serial.println("MANUAL btn is HIGH");
     return 0;
   }
-  else /*if (switchState == )*/
+  else if (autoMode == HIGH)
+  {
+    // switch to Manual
+    Serial.println("AUTO btn is HIGH");
+    return 2;
+  }
+  else if (neutralMode == HIGH)
   { 
-    // switch at Neutral
-    // TODO: 3-phase switch readings?
+    // switch to Manual
+    Serial.println("NEUTRAL btn is HIGH");
+    return 1;
+  }
+  else 
+  {
     return 1;
   }
 }
