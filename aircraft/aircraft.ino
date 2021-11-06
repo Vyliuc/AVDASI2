@@ -33,40 +33,29 @@ VectorFloat gravity; // [x, y, z]           gravity vector
 float ypr[3];        // [yaw, pitch, roll]  yaw/pitch/roll container and gravity vector
 float vel[3];        // [vx, vy, vz]        angular velocity vector
 float acc[3];        // [ax, ay, az]        angular acceleration vector
-float time[2];       // [current, last]     timestamp container
+float Time[2];       // [current, last]     timestamp container
 
 // struct for attitude output
 struct att {
-    float time;     // time since program started
-    float yaw;      // yaw in degrees
-    float pitch;    // pitch in degrees
-    float roll;     // roll in degrees
-    float yawVel;   // yaw rate in degrees/second
-    float pitchVel; // pitch rate in degrees/second
-    float rollVel;  // roll rate in degrees/second
-    float yawAcc;   // yaw angular acceleration in degrees/second^2
-    float pitchAcc; // pitch angular acceleration in degrees/second^2
-    float rollAcc;   // roll angular acceleration in degrees/second^2
+  float time;     // time since program started
+  float yaw;      // yaw in degrees
+  float pitch;    // pitch in degrees
+  float roll;     // roll in degrees
+  float yawVel;   // yaw rate in degrees/second
+  float pitchVel; // pitch rate in degrees/second
+  float rollVel;  // roll rate in degrees/second
+  float yawAcc;   // yaw angular acceleration in degrees/second^2
+  float pitchAcc; // pitch angular acceleration in degrees/second^2
+  float rollAcc;   // roll angular acceleration in degrees/second^2
 };
 
-// horizontal balance variables
-int i = 0; // counter
-float V = 20; // velocity (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
-float St = 0.141; // tailplane area
-float at = 4.079; // tail lift curve slope
-float adel = 2.37; // elevator lift curve slope
-float xg = 31.75; // (xcg - xpivot)
-float xtail = 815; // (xact - xpivot)
-float m = 10; // mass (assumed 10kg)
-float it = -2; // tail setting angle
-float const g = 9.80665; //g
-float const rho = 1.225; //density
-float q = 0.5*rho*(pow(V,2)); // dynamic pressure (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
-float def = 0; // initial elevator deflection
-float error = 0; // excess moment from the balance of moments
-float const lim = 180; //elevator deflection limit (change as required)
-float M = 19208; //estimated moment of inertia (upper estimate 24010, lower estimate 19208)
+
 float refPotVal = 0;
+
+double deflAngle = 0; // initial elevator deflection
+double pitchAngle = 0;
+double angvel = 0;
+double angacc = 0;
 
 int mode = 1; //gives current mode
 
@@ -80,7 +69,7 @@ void setup()
   transceiverSetup(rf69, rf69_manager);
 
   Serial.begin(115200);
-
+  
   mpuSetup();
 
   elevator.attach(SERVO_PIN);
@@ -90,34 +79,32 @@ void loop() {
   // Get roll, pitch, yaw from MPU
   att attitude = getAttitude();
 
-  //receive values for pitch data - WAITING ON HAMISH
-  float ang = attitude.pitch;
-  float angvel = 10;
-  float angacc = 10;
-
   // Display pitch and timestamp
-  Serial.print(attitude.pitch,4);
+  /*Serial.print(attitude.pitch,4);
   Serial.print(F("\t"));
   Serial.print(attitude.pitchVel,4);
   Serial.print(F("\t"));
   Serial.print(attitude.pitchAcc,4);
   Serial.print(F("\t"));
-  Serial.println(attitude.time,6);
-  
+  Serial.println(attitude.time,6);*/
+
+  pitchAngle = attitude.pitch;
+  angvel = attitude.pitchVel;
+  angacc = attitude.pitchAcc;
   
   // constantly listen to the transceiver & check if any data has been received
-  String response = receive(rf69, rf69_manager, ang);
+  String response = receive(rf69, rf69_manager, pitchAngle);
 
   // set the mode
-  if (response.indexOf("Manual Mode Activated!")) 
+  if (response.indexOf("Manual Mode Activated!") != -1) 
   {
     mode = 0;
   }
-  else if (response.indexOf("Auto Mode Activated!")) 
+  else if (response.indexOf("Auto Mode Activated!") != -1) 
   {
     mode = 2;
   }
-  else if (response.indexOf("Neutral Mode Activated!")) 
+  else if (response.indexOf("Neutral Mode Activated!") != -1) 
   {
     mode = 1;
   }
@@ -125,63 +112,73 @@ void loop() {
   //MANUAL MODE
   //search for whether it contains "PotValue:"
   //if it contains the key, and manual mode is active, use getIntFromString and write the potvalue to the servo
-  if (response.indexOf("PotValue: ") && mode == 0) 
-  {
-    float currentPotVal = 0;
-    float deflAngle = 0; 
-    
-    currentPotVal = getIntFromString(response, "PotValue: ");
-    refPotVal = currentPotVal;
+  if (response.indexOf("PotValue: ") != -1 && mode == 0) 
+  { 
+    refPotVal = getIntFromString(response, "PotValue: ");
 
     // scale it to use it with the servo (value between 0 and 180)
-    deflAngle = map(currentPotVal, 0, 1023, 0, 180);  
-
-    Serial.print("Pot Value: ");
-    Serial.println(currentPotVal);
-    Serial.print("Deflection angle: ");
-    Serial println(deflAngle);
-
+    deflAngle = map(refPotVal, 0, 1023, 0, 180);  
+    
     // sets the servo position according to the scaled value   
     elevator.write(deflAngle);
+    delay(15);
   } 
 
   //AUTO MODE
   if (mode == 2)
   {
+    // horizontal balance variables
+    int i = 0; // counter
+    float V = 20; // velocity (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
+    float St = 0.141; // tailplane area
+    float at = 4.079; // tail lift curve slope
+    float adel = 2.37; // elevator lift curve slope
+    float xg = 31.75; // (xcg - xpivot)
+    float xtail = 815; // (xact - xpivot)
+    float m = 10; // mass (assumed 10kg)
+    float it = -2; // tail setting angle
+    float const g = 9.80665; //g
+    float const rho = 1.225; //density
+    float p_dyn = 0.5*rho*(pow(V,2)); // dynamic pressure (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
+    float error = 0; // excess moment from the balance of moments
+    float const lim = 180; //elevator deflection limit (change as required)
+    float M = 19208; //estimated moment of inertia (upper estimate 24010, lower estimate 19208)
+
     // save the previous deflection in def_previous
-    float def_previous = def;
+    float deflAnglePrevious = deflAngle;
 
     // calculate error (in this case, excess moment)
-    error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
-    
-    Serial.print("Previous deflection: ");
-    Serial.println(def_previous);
+    error = (p_dyn*xtail*St*((at*(pitchAngle+it+((angvel*xtail)/V)))+(adel*deflAngle))) + (xg*m*g)- M*angacc;
+
     Serial.print("Excess moment: ");
     Serial.println(error);
-
+    
     //while the error is non zero, loop over moment balance until it's zero
     if (error != 0) 
     {
       //run moment balance
-      def = (((M*angacc)/(q*xtail*St))-((xg*m*g)/(q*xtail*St))-(at*ang)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
+      deflAngle = (((M*angacc)/(p_dyn*xtail*St))-((xg*m*g)/(p_dyn*xtail*St))-(at*pitchAngle)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
 
-      Serial.print("Deflection needed: ");
-      Serial.println(def);
+      Serial.print("Defl angle needed: ");
+      Serial.println(deflAngle);
 
-      if (def != def_previous) 
+      if (deflAngle != deflAnglePrevious) 
       {
         //write deflection onto servo after some scaling and limiting
-        if (abs(def) <= lim) 
+        if (abs(deflAngle) <= lim) 
         {
-          elevator.write(def);
+          elevator.write(deflAngle);
+          delay(15);
         }
-        else if (def > lim) 
+        else if (deflAngle > lim) 
         {
           elevator.write(lim);
+          delay(15);
         }
-        else if (def < (-1*lim)) 
+        else if (deflAngle < (-1*lim)) 
         {
           elevator.write((-1*lim));
+          delay(15);
         }
       }
     }
@@ -191,6 +188,7 @@ void loop() {
   if (mode == 1)
   {
     elevator.write(0);
+    delay(15);
   }
 }
 
@@ -246,7 +244,7 @@ void mpuSetup() {
 att getAttitude() {
     readYPR();
     struct att a;
-    a.time = time[0];
+    a.time = Time[0];
     a.yaw = ypr[0] * 180.0/M_PI;
     a.pitch = ypr[1] * 180.0/M_PI;
     a.roll = ypr[2] * 180.0/M_PI;
@@ -269,25 +267,25 @@ void readYPR() {
     // Read a packet from FIFO
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // get the latest packet
         // Log timestamp
-        timeStamp(time);
+        timeStamp(Time);
         // Get yaw, pitch, roll from DMP
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
         // Differentiate to find velocity and acceleration
-        diff(ypr, vel, time);
-        diff(vel, acc, time);
+        diff(ypr, vel, Time);
+        diff(vel, acc, Time);
     }
 }
 
-void timeStamp(float *time) {
-    // time[0] stores current time value, time[1] stored the last time value
-    time[1] = time[0];
-    time[0] = micros()/1.0E6; // seconds passed since program started
+void timeStamp(float *Time) {
+    // Time[0] stores current time value, Time[1] stored the last time value
+    Time[1] = Time[0];
+    Time[0] = micros()/1.0E6; // seconds passed since program started
 }
 
-void diff(float *input, float *result, float *time) {
-    float interval = time[0] - time[1];
+void diff(float *input, float *result, float *Time) {
+    float interval = Time[0] - Time[1];
     for(uint8_t i = 0; i < sizeof(input); i++) {
         result[i] = input[i] / interval;
     }
@@ -301,6 +299,7 @@ void initSD()
   if (!SD.begin(BUILTIN_SDCARD)) 
   {
     Serial.println("Initialization failed!");
+  }
   else 
   {
     Serial.println("Initialization done");
