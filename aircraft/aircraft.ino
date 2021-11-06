@@ -76,22 +76,6 @@ void setup()
 }
 
 void loop() {
-  // Get roll, pitch, yaw from MPU
-  att attitude = getAttitude();
-
-  // Display pitch and timestamp
-  /*Serial.print(attitude.pitch,4);
-  Serial.print(F("\t"));
-  Serial.print(attitude.pitchVel,4);
-  Serial.print(F("\t"));
-  Serial.print(attitude.pitchAcc,4);
-  Serial.print(F("\t"));
-  Serial.println(attitude.time,6);*/
-
-  pitchAngle = attitude.pitch;
-  angvel = attitude.pitchVel;
-  angacc = attitude.pitchAcc;
-  
   // constantly listen to the transceiver & check if any data has been received
   String response = receive(rf69, rf69_manager, pitchAngle);
 
@@ -114,6 +98,22 @@ void loop() {
   //if it contains the key, and manual mode is active, use getIntFromString and write the potvalue to the servo
   if (response.indexOf("PotValue: ") != -1 && mode == 0) 
   { 
+    // Get roll, pitch, yaw from MPU
+    att attitude = getAttitude();
+
+    pitchAngle = attitude.pitch;
+    angvel = attitude.pitchVel;
+    angacc = attitude.pitchAcc;
+  
+    // Display pitch and timestamp
+    Serial.print(attitude.pitch,4);
+    Serial.print(F("\t"));
+    Serial.print(attitude.pitchVel,4);
+    Serial.print(F("\t"));
+    Serial.print(attitude.pitchAcc,4);
+    Serial.print(F("\t"));
+    Serial.println(attitude.time,6);
+    
     refPotVal = getIntFromString(response, "PotValue: ");
 
     // scale it to use it with the servo (value between 0 and 180)
@@ -143,6 +143,22 @@ void loop() {
     float error = 0; // excess moment from the balance of moments
     float const lim = 180; //elevator deflection limit (change as required)
     float M = 19208; //estimated moment of inertia (upper estimate 24010, lower estimate 19208)
+
+    // Get roll, pitch, yaw from MPU
+    att attitude = getAttitude();
+
+    pitchAngle = attitude.pitch;
+    angvel = attitude.pitchVel;
+    angacc = attitude.pitchAcc;
+  
+    // Display pitch and timestamp
+    Serial.print(attitude.pitch,4);
+    Serial.print(F("\t"));
+    Serial.print(attitude.pitchVel,4);
+    Serial.print(F("\t"));
+    Serial.print(attitude.pitchAcc,4);
+    Serial.print(F("\t"));
+    Serial.println(attitude.time,6);
 
     // save the previous deflection in def_previous
     float deflAnglePrevious = deflAngle;

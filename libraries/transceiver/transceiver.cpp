@@ -48,7 +48,7 @@ void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager)
 String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg) 
 {
   // Wait 1s between transmits, could also 'sleep' here!
-  delay(1000);
+  delay(10);
   
   const char* radiopacket = msg.c_str();
 
