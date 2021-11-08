@@ -1,6 +1,7 @@
 #include <I2Cdev.h>
 #include <MPU6050_6Axis_MotionApps20.h>
 #include <Wire.h>
+#include <String.h>
 
 /*****************************************************************************
  * MPU6050 SETUP                                                             *
@@ -21,7 +22,7 @@ VectorFloat gravity; // [x, y, z]           gravity vector
 float ypr[3];        // [yaw, pitch, roll]  yaw/pitch/roll container and gravity vector
 float vel[3];        // [vx, vy, vz]        angular velocity vector
 float acc[3];        // [ax, ay, az]        angular acceleration vector
-float time[2];       // [current, last]     timestamp container
+float time;          // [current time]      timestamp
 
 // struct for attitude output
 struct att {
@@ -34,7 +35,7 @@ struct att {
     float rollVel;  // roll rate in degrees/second
     float yawAcc;   // yaw angular acceleration in degrees/second^2
     float pitchAcc; // pitch angular acceleration in degrees/second^2
-    float rollAcc;   // roll angular acceleration in degrees/second^2
+    float rollAcc;  // roll angular acceleration in degrees/second^2
 };
 
 /** 
@@ -84,12 +85,12 @@ void mpuSetup() {
 
 /**
  * Polls the MPU then converts the pitch value to degrees.
- * \return MPU pitch in degrees 
+ * @return MPU pitch in degrees 
  */
 att getAttitude() {
     readYPR();
     struct att a;
-    a.time = time[0];
+    a.time = time;
     a.yaw = ypr[0] * 180.0/M_PI;
     a.pitch = ypr[1] * 180.0/M_PI;
     a.roll = ypr[2] * 180.0/M_PI;
@@ -109,30 +110,52 @@ att getAttitude() {
 void readYPR() {
     // If MPU setup failed, don't do anything
     if (!dmpReady) return;
+
+    // store previous values of ypr, vel and time for differentiation
+    float yprOld[3];
+    float velOld[3];
+    copy(ypr, yprOld, 3);
+    copy(vel, velOld, 3);
+    float timeOld = time;
+
     // Read a packet from FIFO
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // get the latest packet
         // Log timestamp
-        timeStamp(time);
+        time = micros()/1.0E6;
         // Get yaw, pitch, roll from DMP
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
         // Differentiate to find velocity and acceleration
-        diff(ypr, vel, time);
-        diff(vel, acc, time);
+        diff(ypr, yprOld, time, timeOld, vel, 3);
+        diff(vel, velOld, time, timeOld, acc, 3);
     }
 }
 
-void timeStamp(float *time) {
-    // time[0] stores current time value, time[1] stored the last time value
-    time[1] = time[0];
-    time[0] = micros()/1.0E6; // seconds passed since program started
+/**
+ * Copies one array to another
+ * 
+ * @param src source array
+ * @param dst destination array
+ * @param len length of arrays
+ */
+void copy(float* src, float* dst, int len) {
+    memcpy(dst, src, sizeof(src[0])*len);
 }
 
-void diff(float *input, float *result, float *time) {
-    float interval = time[0] - time[1];
-    for(uint8_t i = 0; i < sizeof(input); i++) {
-        result[i] = input[i] / interval;
+/**
+ * Differentiates a quantity
+ * 
+ * @param currVal array of values at the current timestep
+ * @param lastVal array of values at the previous timestep
+ * @param currTime time at current timestep
+ * @param lastTime time at previous timestep
+ * @param len length of the currVal and lastVal array
+ * @return array of differentiated values
+ */
+void diff(float *currVal, float *lastVal, float currTime, float lastTime, float *result, int len) {
+    for(int i = 0; i < len; i++) {
+        result[i] = (currVal[i] - lastVal[i]) / (currTime - lastTime);
     }
 }
 
