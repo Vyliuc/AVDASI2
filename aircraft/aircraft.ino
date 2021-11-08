@@ -146,12 +146,12 @@ void copy(float* src, float* dst, int len) {
 /**
  * Differentiates a quantity
  * 
- * @param currVal array of values at the current timestep
- * @param lastVal array of values at the previous timestep
+ * @param currVal pointer to array of values at the current timestep
+ * @param lastVal pointer to array of values at the previous timestep
  * @param currTime time at current timestep
  * @param lastTime time at previous timestep
- * @param len length of the currVal and lastVal array
- * @return array of differentiated values
+ * @param result pointer to  array for differentiated values to be stored
+ * @param len length of the arrays
  */
 void diff(float *currVal, float *lastVal, float currTime, float lastTime, float *result, int len) {
     for(int i = 0; i < len; i++) {
