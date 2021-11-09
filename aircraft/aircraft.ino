@@ -11,6 +11,11 @@
 
 #define SERVO_PIN            23
 
+#define RFM69_CS      10
+#define RFM69_INT     4
+#define RFM69_RST     9
+#define LED           digitalPinToInterrupt(RFM69_INT)
+
 #define RADIO_TX_ADDRESS     69
 #define RADIO_RX_ADDRESS     96
 
@@ -66,7 +71,7 @@ File logsFile;
 void setup() 
 {
   initSD();
-  transceiverSetup(rf69, rf69_manager);
+  transceiverSetup(rf69, rf69_manager, RFM69_CS, RFM69_INT, RFM69_RST, LED);
 
   Serial.begin(115200);
   
@@ -77,7 +82,7 @@ void setup()
 
 void loop() {
   // constantly listen to the transceiver & check if any data has been received
-  String response = receive(rf69, rf69_manager, pitchAngle);
+  String response = receive(rf69, rf69_manager, pitchAngle, LED);
 
   // set the mode
   if (response.indexOf("Manual Mode Activated!") != -1) 

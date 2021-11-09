@@ -2,7 +2,7 @@
 
 uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
 
-void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager)
+void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager, int RFM69_CS, int RFM69_INT, int RFM69_RST, int LED)
 {
   Serial.begin(115200);
   //while (!Serial) { delay(1); } // wait until serial console is open, remove if not tethered to computer
@@ -45,11 +45,11 @@ void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager)
   Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 }
 
-String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg) 
+String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg, int LED) 
 {
   // Wait 1s between transmits, could also 'sleep' here!
-  delay(10);
-  
+  delay(100);
+
   const char* radiopacket = msg.c_str();
 
   Serial.print("Sending "); 
@@ -65,6 +65,11 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
       uint8_t len = sizeof(buf);
       uint8_t from;
 
+      Serial.print("BufLen: ");
+      Serial.println(len);
+      Serial.print("From: ");
+      Serial.println(from);
+
       if (rf69_manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
           buf[len] = 0; // zero out remaining string
 
@@ -75,7 +80,7 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
           Serial.println((char*)buf);
           Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
-          return String((char*)buf);
+          return String((char*)buf);        
       }
       else {
           Serial.println("No reply, is anyone listening?");
@@ -88,7 +93,7 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
   return "";
 }
 
-String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle)
+String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle, int LED)
 {
   if (rf69_manager.available())
   {

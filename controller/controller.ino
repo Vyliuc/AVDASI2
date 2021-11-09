@@ -1,12 +1,13 @@
-#include <Adafruit_LiquidCrystal.h>
 #include <transceiver.h>
+#include <LiquidCrystal_I2C.h>
+#include <Wire.h>
 
 // LEDs pins
 #define MANUAL_LED_PIN    0
 #define AUTO_LED_PIN      1
 
 // Potentiometer pin
-#define POT_CONTROL_PIN   A7
+#define POT_CONTROL_PIN   21
 
 // Buttons pins
 //#define SWITCH_PIN        4
@@ -15,17 +16,33 @@
 #define NEUTRAL_BTN_PIN   17
 
 // LCD pins
-#define LCD_RS_PIN        2       
-#define LCD_EN_PIN        3
-#define LCD_WRITE1_PIN    5 
-#define LCD_WRITE2_PIN    6
-#define LCD_WRITE3_PIN    7
-#define LCD_WRITE4_PIN    8
+/*
+#define LCD_RS_PIN        19      
+#define LCD_EN_PIN        7
+#define LCD_D4_PIN        14 
+#define LCD_D5_PIN        15
+#define LCD_D6_PIN        16
+#define LCD_D7_PIN        17
+*/
+
+#define LCD_I2C_ADDR      0x3F
+
+/*
+#define RFM69_CS      4
+#define RFM69_INT     3
+#define RFM69_RST     2
+#define LED           13
+*/
+#define RFM69_CS      10
+#define RFM69_INT     4
+#define RFM69_RST     9
+#define LED           digitalPinToInterrupt(RFM69_INT)
 
 #define RADIO_TX_ADDRESS     96
 #define RADIO_RX_ADDRESS     69
 
-Adafruit_LiquidCrystal lcd(LCD_RS_PIN, LCD_EN_PIN, LCD_WRITE1_PIN, LCD_WRITE2_PIN, LCD_WRITE3_PIN, LCD_WRITE4_PIN);
+//Adafruit_LiquidCrystal lcd(LCD_RS_PIN, LCD_EN_PIN, LCD_D4_PIN, LCD_D5_PIN, LCD_D6_PIN, LCD_D7_PIN);
+LiquidCrystal_I2C lcd(LCD_I2C_ADDR, 20, 4);
 
 // Singleton instance of the radio driver
 RH_RF69 rf69(RFM69_CS, RFM69_INT);
@@ -33,24 +50,41 @@ RH_RF69 rf69(RFM69_CS, RFM69_INT);
 // Class to manage message delivery and receipt
 RHReliableDatagram rf69_manager(rf69, RADIO_TX_ADDRESS);
 
-void setup() 
-{
-  transceiverSetup(rf69, rf69_manager);
-  
-  // display 0 degrees angle after setup
-  lcd.begin(16, 2);
-  lcd.print("Deflection angle:");
-  displayDeflectionAngle(0);
-
-  statusLEDS(false, false);
-}
-
 // 0 - manual
 // 1 - neutral
 // 2 - auto
 int mode = -1;
 
 int potValue = 0;
+int pitchAngle = 0;
+
+void setup() 
+{
+  Serial.begin(115200);
+    
+  lcd.init();                      // initialize the lcd 
+  // Print a message to the LCD.
+  lcd.backlight();
+  //lcd.setCursor(3,0);
+  //lcd.print("Hello, world!");
+  
+  setLcdData(potValue, pitchAngle);
+  transceiverSetup(rf69, rf69_manager, RFM69_CS, RFM69_INT, RFM69_RST, LED);
+  Serial.println("Radio init done");
+
+  Serial.println("LCD init done");
+  
+  // display 0 degrees angle after setup
+  
+  pinMode(MANUAL_BTN_PIN, INPUT);
+  pinMode(AUTO_BTN_PIN, INPUT);
+  pinMode(NEUTRAL_BTN_PIN, INPUT);
+
+  pinMode(MANUAL_LED_PIN, OUTPUT);
+  pinMode(AUTO_LED_PIN, OUTPUT);
+  
+  statusLEDS(false, false);
+}
 
 void loop() 
 { 
@@ -71,7 +105,7 @@ void loop()
       // Transmit the instructions to activate a Manual mode on aircraft
       String cmd = "Manual";
   
-      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd, LED);
       
       if (response.indexOf("Manual Mode Activated!") != -1) 
       {
@@ -99,7 +133,7 @@ void loop()
       // convert the pot value to string
       String potValueString = "PotValue: " + String(potValue);
 
-      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, potValueString);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, potValueString, LED);
 
       if (response.indexOf("PotValue: ") != -1) 
       {
@@ -111,7 +145,7 @@ void loop()
         delay(20);
         digitalWrite(MANUAL_LED_PIN, HIGH);
 
-        displayDeflectionAngle(potValue);
+        setLcdData(potValue, pitchAngle);
         
         Serial.println("Transmission successful!");
         Serial.print("Response: ");
@@ -130,13 +164,15 @@ void loop()
       // Transmit the instructions to activate an Auto mode on aircraft
       String cmd = "Auto";
   
-      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd, LED);
   
       if (response.indexOf("Auto Mode Activated!") != -1) 
       {
         // update the pitch angle
         pitchAngle = getIntFromString(response, "Pitch Angle: ");
 
+        setLcdData(potValue, pitchAngle);
+        
         // switch Auto status led ON
         // switch Manual status led OFF
         statusLEDS(false, true);
@@ -157,14 +193,16 @@ void loop()
     {
       // Transmit the instructions to activate a Neutral mode on aircraft
       String cmd = "Neutral";
-  
-      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
-  
+      
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd, LED);
+    
       if (response.indexOf("Neutral Mode Activated!") != -1) 
       {
         // update the pitch angle
         pitchAngle = getIntFromString(response, "Pitch Angle: ");
 
+        setLcdData(potValue, pitchAngle);
+        
         // switch Auto status led OFF
         // switch Manual status led OFF
         statusLEDS(false, false);
@@ -184,10 +222,6 @@ int getSwitchPosition()
   int manualMode = 0;
   int autoMode = 0;
   int neutralMode = 0;
-
-  pinMode(MANUAL_BTN_PIN, INPUT);
-  pinMode(AUTO_BTN_PIN, INPUT);
-  pinMode(NEUTRAL_BTN_PIN, INPUT);
 
   manualMode = digitalRead(MANUAL_BTN_PIN);
   autoMode = digitalRead(AUTO_BTN_PIN);
@@ -229,42 +263,40 @@ int getCurrentPotValue()
   return potVal;
 }
 
-void displayDeflectionAngle(int potValue) {
+void setLcdData(int potValue, int pitchAngle) {
   // calculate the angle from the potentiometer voltage 
   // display the angle
-  Serial.begin(9600);
-  Serial.println("I have reached the LCD!");
-  int displayDefAngle = map(potValue, 0, 1023, 0, 179);
-  int displayPitchAngle = 0;// TODO: pitch angle input
+  int deflAngle = map(potValue, 0, 1023, 0, 179);
   
-  lcd.setCursor(0, 1);
-  lcd.print(displayDefAngle);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Defl angle ");
+  lcd.print(deflAngle);
+  lcd.setCursor(1, 0);
+  lcd.print("Pitch angle ");
+  lcd.print(pitchAngle);
 }
 
 void statusLEDS(bool manualLedOn, bool autoLedOn) {
   if (manualLedOn) 
   {
     Serial.println("Manual LED on!");
-    pinMode(MANUAL_LED_PIN, OUTPUT);
     digitalWrite(MANUAL_LED_PIN, HIGH);
   }
   else 
   {
     Serial.println("Manual LED off!");
-    pinMode(MANUAL_LED_PIN, OUTPUT);
     digitalWrite(MANUAL_LED_PIN, LOW);
   }
 
   if (autoLedOn) 
   {
     Serial.println("Auto LED on!");
-    pinMode(AUTO_LED_PIN, OUTPUT);
     digitalWrite(AUTO_LED_PIN, HIGH);
   }
   else 
   {
     Serial.println("Auto LED off!");
-    pinMode(AUTO_LED_PIN, OUTPUT);
     digitalWrite(AUTO_LED_PIN, LOW);
   }
 }

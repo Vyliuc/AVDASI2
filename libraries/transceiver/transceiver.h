@@ -6,16 +6,11 @@
 // Change to 434.0 or other frequency, must match RX's freq!
 #define RF69_FREQ 434
 
-#define RFM69_CS      10
-#define RFM69_INT     4
-#define RFM69_RST     9
-#define LED           digitalPinToInterrupt(RFM69_INT)
+void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager, int RFM69_CS, int RFM69_INT, int RFM69_RST, int LED);
 
-void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager);
+String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg, int LED);
 
-String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg);
-
-String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle);
+String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle, int LED);
 
 void Blink(byte PIN, byte DELAY_MS, byte loops);
 
