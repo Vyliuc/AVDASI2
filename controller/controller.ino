@@ -10,38 +10,16 @@
 #define POT_CONTROL_PIN   21
 
 // Buttons pins
-//#define SWITCH_PIN        4
 #define MANUAL_BTN_PIN    15
 #define AUTO_BTN_PIN      16
 #define NEUTRAL_BTN_PIN   17
 
-// LCD pins
-/*
-#define LCD_RS_PIN        19      
-#define LCD_EN_PIN        7
-#define LCD_D4_PIN        14 
-#define LCD_D5_PIN        15
-#define LCD_D6_PIN        16
-#define LCD_D7_PIN        17
-*/
-
+// LCD I2C channel
 #define LCD_I2C_ADDR      0x3F
-
-/*
-#define RFM69_CS      4
-#define RFM69_INT     3
-#define RFM69_RST     2
-#define LED           13
-*/
-#define RFM69_CS      10
-#define RFM69_INT     4
-#define RFM69_RST     9
-#define LED           digitalPinToInterrupt(RFM69_INT)
 
 #define RADIO_TX_ADDRESS     96
 #define RADIO_RX_ADDRESS     69
 
-//Adafruit_LiquidCrystal lcd(LCD_RS_PIN, LCD_EN_PIN, LCD_D4_PIN, LCD_D5_PIN, LCD_D6_PIN, LCD_D7_PIN);
 LiquidCrystal_I2C lcd(LCD_I2C_ADDR, 20, 4);
 
 // Singleton instance of the radio driver
@@ -55,26 +33,33 @@ RHReliableDatagram rf69_manager(rf69, RADIO_TX_ADDRESS);
 // 2 - auto
 int mode = -1;
 
-int potValue = 0;
-int pitchAngle = 0;
+float deflAngle = 0;
+float pitchAngle = 0;
+
+void setLcdData(float deflAngle, float pitchAngle) {
+  // display the angles
+  lcd.clear();
+  
+  lcd.setCursor(0,1);
+  lcd.print("Defl angle ");
+  lcd.print(deflAngle);
+  
+  lcd.setCursor(0, 2); 
+  lcd.print("Pitch angle "); 
+  lcd.print(pitchAngle);
+}
 
 void setup() 
 {
   Serial.begin(115200);
     
   lcd.init();                      // initialize the lcd 
-  // Print a message to the LCD.
   lcd.backlight();
-  //lcd.setCursor(3,0);
-  //lcd.print("Hello, world!");
-  
-  setLcdData(potValue, pitchAngle);
-  transceiverSetup(rf69, rf69_manager, RFM69_CS, RFM69_INT, RFM69_RST, LED);
-  Serial.println("Radio init done");
 
-  Serial.println("LCD init done");
+  // display 0 degrees angles after setup
+  setLcdData(deflAngle, pitchAngle);
   
-  // display 0 degrees angle after setup
+  transceiverSetup(rf69, rf69_manager);
   
   pinMode(MANUAL_BTN_PIN, INPUT);
   pinMode(AUTO_BTN_PIN, INPUT);
@@ -88,8 +73,29 @@ void setup()
 
 void loop() 
 { 
+  // Listen for pitch & deflection angles when the Auto mode is on
+  String response_received = receive(rf69, rf69_manager, 0);
+
+  if (response_received.indexOf("Pitch Angle:") != -1 && response_received.indexOf("Defl Angle:") != -1) 
+  {
+    Serial.println("GOT RESPONSE IN AUTO");
+    Serial.println(response_received);
+
+    // blink Auto status led, 20ms delay
+    digitalWrite(AUTO_LED_PIN, LOW);
+    delay(20);
+    digitalWrite(AUTO_LED_PIN, HIGH);
+
+    pitchAngle = getNumberFromString(response_received, "Pitch Angle: ");
+    Serial.println(pitchAngle);
+    deflAngle = getNumberFromString(response_received, "Defl Angle: ");
+    Serial.println(deflAngle);
+
+    setLcdData(deflAngle, pitchAngle);
+  }
+
+  // set the mode
   int switchPos = getSwitchPosition();
-  int pitchAngle = 0;
 
   if (switchPos == -1) 
   {
@@ -105,12 +111,12 @@ void loop()
       // Transmit the instructions to activate a Manual mode on aircraft
       String cmd = "Manual";
   
-      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd, LED);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
       
       if (response.indexOf("Manual Mode Activated!") != -1) 
       {
         // update the pitch angle
-        pitchAngle = getIntFromString(response, "Pitch Angle: ");
+        pitchAngle = getNumberFromString(response, "Pitch Angle: ");
 
         // switch Manual status led ON
         // switch Auto status led OFF
@@ -122,30 +128,31 @@ void loop()
       }
     }
 
-    int currentPotValue = getCurrentPotValue();
+    float currentPotValue = getCurrentPotValue();
+    float currentDeflAngle = potValToAngle(currentPotValue);
     
-    // if potentiometer value has changed
-    if (currentPotValue != potValue) 
+    // if potentiometer value has changed (angle changed)
+    if (currentDeflAngle != deflAngle) 
     {
       // TODO: also add some tolerance, pot value might fluctuate even when potentiometer is still??
-      potValue = currentPotValue;
+      deflAngle = currentDeflAngle;
 
-      // convert the pot value to string
-      String potValueString = "PotValue: " + String(potValue);
+      // convert the angle value to string
+      String deflAngleString = "DeflAngle: " + String(deflAngle);
 
-      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, potValueString, LED);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, deflAngleString);
 
-      if (response.indexOf("PotValue: ") != -1) 
+      if (response.indexOf("DeflAngle: ") != -1) 
       {
         // update the pitch angle
-        pitchAngle = getIntFromString(response, "Pitch Angle: ");
+        pitchAngle = getNumberFromString(response, "Pitch Angle: ");
 
         // blink Manual status led, 20ms delay
         digitalWrite(MANUAL_LED_PIN, LOW);
         delay(20);
         digitalWrite(MANUAL_LED_PIN, HIGH);
 
-        setLcdData(potValue, pitchAngle);
+        setLcdData(deflAngle, pitchAngle);
         
         Serial.println("Transmission successful!");
         Serial.print("Response: ");
@@ -164,14 +171,14 @@ void loop()
       // Transmit the instructions to activate an Auto mode on aircraft
       String cmd = "Auto";
   
-      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd, LED);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
       if (response.indexOf("Auto Mode Activated!") != -1) 
       {
         // update the pitch angle
-        pitchAngle = getIntFromString(response, "Pitch Angle: ");
+        pitchAngle = getNumberFromString(response, "Pitch Angle: ");
 
-        setLcdData(potValue, pitchAngle);
+        setLcdData(deflAngle, pitchAngle);
         
         // switch Auto status led ON
         // switch Manual status led OFF
@@ -194,14 +201,14 @@ void loop()
       // Transmit the instructions to activate a Neutral mode on aircraft
       String cmd = "Neutral";
       
-      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd, LED);
+      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
     
       if (response.indexOf("Neutral Mode Activated!") != -1) 
       {
         // update the pitch angle
-        pitchAngle = getIntFromString(response, "Pitch Angle: ");
+        pitchAngle = getNumberFromString(response, "Pitch Angle: ");
 
-        setLcdData(potValue, pitchAngle);
+        setLcdData(deflAngle, pitchAngle);
         
         // switch Auto status led OFF
         // switch Manual status led OFF
@@ -263,20 +270,6 @@ int getCurrentPotValue()
   return potVal;
 }
 
-void setLcdData(int potValue, int pitchAngle) {
-  // calculate the angle from the potentiometer voltage 
-  // display the angle
-  int deflAngle = map(potValue, 0, 1023, 0, 179);
-  
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print("Defl angle ");
-  lcd.print(deflAngle);
-  lcd.setCursor(1, 0);
-  lcd.print("Pitch angle ");
-  lcd.print(pitchAngle);
-}
-
 void statusLEDS(bool manualLedOn, bool autoLedOn) {
   if (manualLedOn) 
   {
@@ -301,43 +294,33 @@ void statusLEDS(bool manualLedOn, bool autoLedOn) {
   }
 }
 
-int getIntFromString(String str, String startPhrase) 
+float potValToAngle(float potValue)
+{
+ return map(potValue, 0, 1023, 0, 180); 
+}
+
+float getNumberFromString(String str, String startPhrase) 
 {
   //function to extract number from string
   int index = str.indexOf(startPhrase);
-  String substr = str.substring(index);
 
-  int intStartIndex = -1;
-  int intEndIndex = -1;
-  int intToReturn = 0;
+  int numberStartIndex = index + startPhrase.length();
+  int numberEndIndex = str.length();
+  float numberToReturn = 0;
 
-  for (int i = 0 ; i < substr.length(); i++) 
+  for (int i = numberStartIndex; i < str.length(); i++) 
   {
-    if (isdigit(substr[i]))
+    // if not digit and not a minus sign and not dot
+    if (!isdigit(str[i]) && str[i] != '-' && str[i] != '.')
     {
-      if (intStartIndex == -1) 
-      {
-        intStartIndex = i;
-      }
-
-      if ((i + 1) <= (substr.length() - 1))
-      {
-        if (!isdigit(substr[i+1]))
-        {
-          intEndIndex = i + 1;
-        }
-      }
-      else 
-      {
-        intEndIndex = i;
-      }
+      numberEndIndex = i;
+      break;
     }
   }
 
-  substr = substr.substring(intStartIndex, intEndIndex);
-
-  // convert the remaining text to an integer
-  intToReturn = atoi(substr.c_str());
+  String numberToReturnStr = str.substring(numberStartIndex, numberEndIndex);
   
-  return intToReturn;
+  numberToReturn = atof(numberToReturnStr.c_str());
+  
+  return numberToReturn;
 }

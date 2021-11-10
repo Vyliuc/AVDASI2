@@ -7,15 +7,7 @@
 #include <Servo.h>
 #include <String.h>
 
-// TODO: set pins
-#define INTERRUPT_PIN        2 
-
 #define SERVO_PIN            23
-
-#define RFM69_CS      10
-#define RFM69_INT     4
-#define RFM69_RST     9
-#define LED           digitalPinToInterrupt(RFM69_INT)
 
 #define RADIO_TX_ADDRESS     69
 #define RADIO_RX_ADDRESS     96
@@ -39,29 +31,28 @@ VectorFloat gravity; // [x, y, z]           gravity vector
 float ypr[3];        // [yaw, pitch, roll]  yaw/pitch/roll container and gravity vector
 float vel[3];        // [vx, vy, vz]        angular velocity vector
 float acc[3];        // [ax, ay, az]        angular acceleration vector
-float time;          // [current time]      timestamp
+float Time;          // [current time]      timestamp
 
 // struct for attitude output
 struct att {
-    float time;     // time since program started
-    float yaw;      // yaw in degrees
-    float pitch;    // pitch in degrees
-    float roll;     // roll in degrees
-    float yawVel;   // yaw rate in degrees/second
-    float pitchVel; // pitch rate in degrees/second
-    float rollVel;  // roll rate in degrees/second
-    float yawAcc;   // yaw angular acceleration in degrees/second^2
-    float pitchAcc; // pitch angular acceleration in degrees/second^2
-    float rollAcc;  // roll angular acceleration in degrees/second^2
+  float time;     // time since program started
+  float yaw;      // yaw in degrees
+  float pitch;    // pitch in degrees
+  float roll;     // roll in degrees
+  float yawVel;   // yaw rate in degrees/second
+  float pitchVel; // pitch rate in degrees/second
+  float rollVel;  // roll rate in degrees/second
+  float yawAcc;   // yaw angular acceleration in degrees/second^2
+  float pitchAcc; // pitch angular acceleration in degrees/second^2
+  float rollAcc;  // roll angular acceleration in degrees/second^2
 };
 
-
-float refPotVal = 0;
-
-double deflAngle = 0; // initial elevator deflection
-double pitchAngle = 0;
+float deflAngle = 0; // initial elevator deflection
+float pitchAngle = 0;
 double angvel = 0;
 double angacc = 0;
+
+float cmdInterval = micros()/1.0E6;
 
 int mode = 1; //gives current mode
 
@@ -72,7 +63,7 @@ File logsFile;
 void setup() 
 {
   initSD();
-  transceiverSetup(rf69, rf69_manager, RFM69_CS, RFM69_INT, RFM69_RST, LED);
+  transceiverSetup(rf69, rf69_manager);
 
   Serial.begin(115200);
   
@@ -83,7 +74,7 @@ void setup()
 
 void loop() {
   // constantly listen to the transceiver & check if any data has been received
-  String response = receive(rf69, rf69_manager, pitchAngle, LED);
+  String response = receive(rf69, rf69_manager, pitchAngle);
 
   // set the mode
   if (response.indexOf("Manual Mode Activated!") != -1) 
@@ -100,9 +91,9 @@ void loop() {
   }
   
   //MANUAL MODE
-  //search for whether it contains "PotValue:"
-  //if it contains the key, and manual mode is active, use getIntFromString and write the potvalue to the servo
-  if (response.indexOf("PotValue: ") != -1 && mode == 0) 
+  //search for whether it contains "DeflAngle:"
+  //if it contains the key, and manual mode is active, use getNumberFromString and write the potvalue to the servo
+  if (response.indexOf("DeflAngle: ") != -1 && mode == 0) 
   { 
     // Get roll, pitch, yaw from MPU
     att attitude = getAttitude();
@@ -120,14 +111,14 @@ void loop() {
     Serial.print(F("\t"));
     Serial.println(attitude.time,6);
     
-    refPotVal = getIntFromString(response, "PotValue: ");
+    deflAngle = getNumberFromString(response, "DeflAngle: ");
 
-    // scale it to use it with the servo (value between 0 and 180)
-    deflAngle = map(refPotVal, 0, 1023, 0, 180);  
+    Serial.print("DeflAngle extracted from the response: ");
+    Serial.println(deflAngle);
     
     // sets the servo position according to the scaled value   
     elevator.write(deflAngle);
-    delay(15);
+    delay(50);
   } 
 
   //AUTO MODE
@@ -184,6 +175,16 @@ void loop() {
       Serial.print("Defl angle needed: ");
       Serial.println(deflAngle);
 
+      // SEND BACK PITCH RESPONSE TO CONTROLLER
+      if (cmdInterval + 1 <= micros()/1.0E6)
+      {
+        String cmd = "Pitch Angle: " + String(pitchAngle) + " Defl Angle: " + String(deflAngle);
+    
+        String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
+        
+        cmdInterval = micros()/1.0E6;     
+      }
+
       if (deflAngle != deflAnglePrevious) 
       {
         //write deflection onto servo after some scaling and limiting
@@ -209,8 +210,9 @@ void loop() {
   //NEUTRAL MODE
   if (mode == 1)
   {
-    elevator.write(0);
-    delay(15);
+    // is that needed? i dont think so...
+    //elevator.write(0);
+    //delay(15);
   }
 }
 
@@ -266,7 +268,7 @@ void mpuSetup() {
 att getAttitude() {
     readYPR();
     struct att a;
-    a.time = time;
+    a.time = Time;
     a.yaw = ypr[0] * 180.0/M_PI;
     a.pitch = ypr[1] * 180.0/M_PI;
     a.roll = ypr[2] * 180.0/M_PI;
@@ -292,19 +294,19 @@ void readYPR() {
     float velOld[3];
     copy(ypr, yprOld, 3);
     copy(vel, velOld, 3);
-    float timeOld = time;
+    float timeOld = Time;
 
     // Read a packet from FIFO
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // get the latest packet
         // Log timestamp
-        time = micros()/1.0E6;
+        Time = micros()/1.0E6;
         // Get yaw, pitch, roll from DMP
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
         // Differentiate to find velocity and acceleration
-        diff(ypr, yprOld, time, timeOld, vel, 3);
-        diff(vel, velOld, time, timeOld, acc, 3);
+        diff(ypr, yprOld, Time, timeOld, vel, 3);
+        diff(vel, velOld, Time, timeOld, acc, 3);
     }
 }
 
@@ -367,43 +369,28 @@ void logToSD(String msg)
   }
 }
 
-int getIntFromString(String str, String startPhrase) 
+float getNumberFromString(String str, String startPhrase) 
 {
   //function to extract number from string
   int index = str.indexOf(startPhrase);
-  String substr = str.substring(index);
 
-  int intStartIndex = -1;
-  int intEndIndex = -1;
-  int intToReturn = 0;
+  int numberStartIndex = index + startPhrase.length();
+  int numberEndIndex = str.length();
+  float numberToReturn = 0;
 
-  for (int i = 0 ; i < substr.length(); i++) 
+  for (int i = numberStartIndex; i < str.length(); i++) 
   {
-    if (isdigit(substr[i]))
+    // if not digit and not a minus sign and not dot
+    if (!isdigit(str[i]) && str[i] != '-' && str[i] != '.')
     {
-      if (intStartIndex == -1) 
-      {
-        intStartIndex = i;
-      }
-
-      if ((i + 1) <= (substr.length() - 1))
-      {
-        if (!isdigit(substr[i+1]))
-        {
-          intEndIndex = i + 1;
-        }
-      }
-      else 
-      {
-        intEndIndex = i;
-      }
+      numberEndIndex = i;
+      break;
     }
   }
 
-  substr = substr.substring(intStartIndex, intEndIndex);
-
-  // convert the remaining text to an integer
-  intToReturn = atoi(substr.c_str());
+  String numberToReturnStr = str.substring(numberStartIndex, numberEndIndex);
   
-  return intToReturn;
+  numberToReturn = atof(numberToReturnStr.c_str());
+  
+  return numberToReturn;
 }

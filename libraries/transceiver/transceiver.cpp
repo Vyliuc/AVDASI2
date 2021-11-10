@@ -2,7 +2,7 @@
 
 uint8_t buf[RH_RF69_MAX_MESSAGE_LEN];
 
-void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager, int RFM69_CS, int RFM69_INT, int RFM69_RST, int LED)
+void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager)
 {
   Serial.begin(115200);
   //while (!Serial) { delay(1); } // wait until serial console is open, remove if not tethered to computer
@@ -45,10 +45,10 @@ void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager, int RFM69_C
   Serial.print("RFM69 radio @");  Serial.print((int)RF69_FREQ);  Serial.println(" MHz");
 }
 
-String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg, int LED) 
+String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg) 
 {
   // Wait 1s between transmits, could also 'sleep' here!
-  delay(100);
+  delay(500);
 
   const char* radiopacket = msg.c_str();
 
@@ -64,11 +64,6 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
       // Now wait for a reply from the server
       uint8_t len = sizeof(buf);
       uint8_t from;
-
-      Serial.print("BufLen: ");
-      Serial.println(len);
-      Serial.print("From: ");
-      Serial.println(from);
 
       if (rf69_manager.recvfromAckTimeout(buf, &len, 2000, &from)) {
           buf[len] = 0; // zero out remaining string
@@ -93,7 +88,7 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
   return "";
 }
 
-String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle, int LED)
+String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle)
 {
   if (rf69_manager.available())
   {
@@ -148,6 +143,7 @@ String getResponseMsg(String msg, int pitchAngle)
   if (msg == "Manual") return ("Manual Mode Activated!" + pitchVal);
   else if (msg == "Auto") return ("Auto Mode Activated!" + pitchVal);
   else if (msg == "Neutral") return ("Neutral Mode Activated!" + pitchVal);
-  else if (msg.indexOf("PotValue:") != -1) return (msg + pitchVal);
+  else if (msg.indexOf("DeflAngle:") != -1) return (msg + pitchVal);
+  else if (msg.indexOf("Pitch Angle:") != -1 && msg.indexOf("Defl Angle:") != -1) return msg;
   else return "";
 }

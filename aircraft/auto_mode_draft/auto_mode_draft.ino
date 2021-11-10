@@ -21,11 +21,39 @@ float M = 11920; //REQUEST FROM CAD TEAM
 Servo elevator;
 
 void setup() {
+  Serial.println("In Setup ");
   // setting up servo pin
   elevator.attach(23); // fill with the pin that the servo is on
 }
 
+int i = 0;
+
 void loop() {
+  i++;
+  Serial.print("Loop ");
+  Serial.println(i);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(25);
+  delay(2000);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(50);
+  delay(2000);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(100);
+  delay(2000);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(150);
+  delay(2000);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(180);
+  delay(2000);
+  Serial.println("Complete");
+  /*
   //receive values for pitch data
   float ang = 10;
   float angvel = 10;
@@ -55,4 +83,5 @@ void loop() {
   else {
     elevator.write(0);
   }
+  */
 }
