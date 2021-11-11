@@ -81,7 +81,7 @@ void loop() {
   // Get roll, pitch, yaw from MPU
   att attitude = getAttitude();
 
-  //receive values for pitch data - WAITING ON HAMISH
+  //receive values for pitch data
   float ang = attitude.pitch;
   float angvel = 10;
   float angacc = 10;
@@ -142,7 +142,10 @@ void loop() {
     float def_previous = def;
 
     // calculate error (in this case, excess moment)
-    error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
+    //error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
+
+    // calculate error (in this case, excess moment)
+    error = 
     
     Serial.print("Previous deflection: ");
     Serial.println(def_previous);
