@@ -77,24 +77,7 @@ void setup()
   elevator.attach(SERVO_PIN);
 }
 
-void loop() {
-  // Get roll, pitch, yaw from MPU
-  att attitude = getAttitude();
-
-  //receive values for pitch data
-  float ang = attitude.pitch;
-  float angvel = 10;
-  float angacc = 10;
-
-  // Display pitch and timestamp
-  Serial.print(attitude.yaw);
-  Serial.print(F("\t"));
-  Serial.print(attitude.pitch);
-  Serial.print(F("\t"));
-  Serial.print(attitude.roll);
-  Serial.print(F("\t"));
-  Serial.println(attitude.time,6);
-  
+void loop() {  
   // constantly listen to the transceiver & check if any data has been received
   String response = receive(rf69, rf69_manager, ang);
 
@@ -142,10 +125,7 @@ void loop() {
     float def_previous = def;
 
     // calculate error (in this case, excess moment)
-    //error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
-
-    // calculate error (in this case, excess moment)
-    error = 
+    error = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def))) + (xg*m*g)- M*angacc;
     
     Serial.print("Previous deflection: ");
     Serial.println(def_previous);
