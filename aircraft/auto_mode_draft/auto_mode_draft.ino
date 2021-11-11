@@ -14,22 +14,50 @@ float const rho = 1.225;
 float q = 0.5*rho*(pow(V,2));
 float def = 0;
 float const lim = 3;
-//float M = ; //REQUEST FROM CAD TEAM
+float M = 11920; //REQUEST FROM CAD TEAM
 
 
 //initialise servo
 Servo elevator;
 
 void setup() {
+  Serial.println("In Setup ");
   // setting up servo pin
-  elevator.attach(); // fill with the pin that the servo is on
+  elevator.attach(23); // fill with the pin that the servo is on
 }
 
+int i = 0;
+
 void loop() {
+  i++;
+  Serial.print("Loop ");
+  Serial.println(i);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(25);
+  delay(2000);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(50);
+  delay(2000);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(100);
+  delay(2000);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(150);
+  delay(2000);
+  elevator.write(0);
+  delay(2000);
+  elevator.write(180);
+  delay(2000);
+  Serial.println("Complete");
+  /*
   //receive values for pitch data
-  //float ang = ;
-  //float angvel = ;
-  //float angacc = ;
+  float ang = 10;
+  float angvel = 10;
+  float angacc = 10;
   
   // stability reference
   float ref = (q*xtail*St*((at*(ang+it+((angvel*xtail)/V)))+(adel*def)))+(xg*m*g)- M*angacc;
@@ -55,4 +83,5 @@ void loop() {
   else {
     elevator.write(0);
   }
+  */
 }

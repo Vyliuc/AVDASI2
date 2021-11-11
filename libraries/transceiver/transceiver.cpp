@@ -47,9 +47,9 @@ void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager)
 
 String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg) 
 {
-  // Wait 100 ms between transmits, could also 'sleep' here!
-  delay(100);
-  
+  // Wait 1s between transmits, could also 'sleep' here!
+  delay(500);
+
   const char* radiopacket = msg.c_str();
 
   Serial.print("Sending "); 
@@ -75,7 +75,7 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
           Serial.println((char*)buf);
           Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
-          return String((char*)buf);
+          return String((char*)buf);        
       }
       else {
           Serial.println("No reply, is anyone listening?");
@@ -143,6 +143,7 @@ String getResponseMsg(String msg, int pitchAngle)
   if (msg == "Manual") return ("Manual Mode Activated!" + pitchVal);
   else if (msg == "Auto") return ("Auto Mode Activated!" + pitchVal);
   else if (msg == "Neutral") return ("Neutral Mode Activated!" + pitchVal);
-  else if (msg.indexOf("PotValue:") != -1) return (msg + pitchVal);
+  else if (msg.indexOf("DeflAngle:") != -1) return (msg + pitchVal);
+  else if (msg.indexOf("Pitch Angle:") != -1 && msg.indexOf("Defl Angle:") != -1) return msg;
   else return "";
 }
