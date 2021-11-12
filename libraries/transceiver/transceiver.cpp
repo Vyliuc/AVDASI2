@@ -88,7 +88,7 @@ String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_
   return "";
 }
 
-String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle)
+String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, float pitchAngle, float deflAngle)
 {
   if (rf69_manager.available())
   {
@@ -108,7 +108,7 @@ String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle)
       Serial.println((char*)buf);
       Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
 
-      responseMsg = getResponseMsg(String((char*)buf), pitchAngle);
+      responseMsg = getResponseMsg(String((char*)buf), pitchAngle, deflAngle);
 
       const char* responseMsgChar = responseMsg.c_str();
 
@@ -135,15 +135,23 @@ void Blink(byte PIN, byte DELAY_MS, byte loops) {
   }
 }
 
-String getResponseMsg(String msg, int pitchAngle) 
+String getResponseMsg(String msg, float pitchAngle, float deflAngle) 
 {
-  String pitchValString = String(pitchAngle);
-  String pitchVal = " Pitch Angle: " + pitchValString;
+  String pitchString = String(pitchAngle);
+  String deflString = String(deflAngle);
+
+  String pitchAngleString = " Pitch Angle: " + pitchString;
+  String deflAngleString = " Defl Angle: " + deflString;
+  String angles = pitchAngleString + deflAngleString;
   
-  if (msg == "Manual") return ("Manual Mode Activated!" + pitchVal);
-  else if (msg == "Auto") return ("Auto Mode Activated!" + pitchVal);
-  else if (msg == "Neutral") return ("Neutral Mode Activated!" + pitchVal);
-  else if (msg.indexOf("DeflAngle:") != -1) return (msg + pitchVal);
-  else if (msg.indexOf("Pitch Angle:") != -1 && msg.indexOf("Defl Angle:") != -1) return msg;
-  else return "";
+  if (msg == "Controlled") return ("Controlled Mode Activated!" + angles);
+  if (msg == "Manual Deflection") return ("Manual Deflection Activated!" + angles);
+  if (msg == "Neutral") return ("Neutral Mode Activated!" + angles);
+  if (msg.indexOf("Ref Pitch: ") != -1) return ("Received " + msg + angles);
+  if (msg.indexOf("Kp: ") != -1) return ("Received " + msg + angles);
+  if (msg.indexOf("Ki: ") != -1) return ("Received " + msg + angles);
+  if (msg.indexOf("Kd: ") != -1) return ("Received " + msg + angles);
+  if (msg.indexOf("Deflection: ") != -1) return ("Received " + msg + pitchAngleString);
+  if (msg.indexOf("Pitch Angle: ") != -1 && msg.indexOf("Defl Angle: ") != -1) return msg;
+  return "";
 }
