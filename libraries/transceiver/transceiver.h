@@ -15,8 +15,8 @@ void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager);
 
 String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg);
 
-String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, int pitchAngle);
+String receive(RH_RF69 rf69, RHReliableDatagram rf69_manager, float pitchAngle, float deflAngle);
 
 void Blink(byte PIN, byte DELAY_MS, byte loops);
 
-String getResponseMsg(String msg, int pitchAngle);
+String getResponseMsg(String msg, float pitchAngle, float deflAngle);
