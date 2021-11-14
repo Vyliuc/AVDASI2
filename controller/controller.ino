@@ -63,12 +63,14 @@ float Kd = 1;
 float potVal = 0;
 float potValTolerance = 5;
 
+float lastTimeTaken = micros()/1.0E6;
+
 void setLcdData(float deflAngle, float pitchAngle, float refPitchAngle, float Kp, float Ki, float Kd) {
   // display the angles and the gains on the lcd
   lcd.clear();
   
   lcd.setCursor(0, 0);
-  lcd.print("Defl ");
+  lcd.print("Defl  ");
   lcd.print(deflAngle);
   
   lcd.setCursor(0, 1); 
@@ -79,15 +81,15 @@ void setLcdData(float deflAngle, float pitchAngle, float refPitchAngle, float Kp
   lcd.print("Ref Pitch "); 
   lcd.print(refPitchAngle);
 
-  lcd.setCursor(11, 0);
+  lcd.setCursor(12, 0);
   lcd.print("Kp "); 
   lcd.print(Kp);
 
-  lcd.setCursor(11, 1);
+  lcd.setCursor(12, 1);
   lcd.print("Ki "); 
   lcd.print(Ki);
 
-  lcd.setCursor(11, 2);
+  lcd.setCursor(12, 2);
   lcd.print("Kd "); 
   lcd.print(Kd);
 }
@@ -131,25 +133,33 @@ void setup()
 
 void loop() 
 { 
-  // listen for pitch & deflection angles when the Controlled mode is on
-  String responseReceived = receive(rf69, rf69_manager, 0, 0);
+  // listen for pitch & deflection angles every 1s
 
-  if (responseReceived.indexOf("Pitch Angle:") != -1 && responseReceived.indexOf("Defl Angle:") != -1) 
+  if (lastTimeTaken + 1 <= micros()/1.0E6)
   {
-    Serial.println("GOT RESPONSE IN CONTROLLED");
-    Serial.println(responseReceived);
+    String cmd = "Demand angles";
 
-    // blink Radio status LED
-    statusLEDBlink(RADIO_LED_PIN);
+    String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
 
-    // update the parameters
-    currentPitchAngle = getNumberFromString(responseReceived, "Pitch Angle: ");
-    Serial.println(currentPitchAngle);
-
-    deflAngle = getNumberFromString(responseReceived, "Defl Angle: ");
-    Serial.println(deflAngle);
-
-    setLcdData(deflAngle, currentPitchAngle, refPitchAngle, Kp, Ki, Kd);
+    if (response.indexOf("Angles received") != -1) 
+    {
+      Serial.println("ANGLES RECEIVED");
+      Serial.println(response);
+  
+      // blink Radio status LED
+      statusLEDBlink(RADIO_LED_PIN);
+  
+      // update the parameters
+      currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
+      Serial.println(currentPitchAngle);
+  
+      deflAngle = getNumberFromString(response, "Defl Angle: ");
+      Serial.println(deflAngle);
+  
+      setLcdData(deflAngle, currentPitchAngle, refPitchAngle, Kp, Ki, Kd);
+    }
+    
+    lastTimeTaken = micros()/1.0E6;     
   }
 
   // get the current mode from analog input responses
@@ -181,12 +191,12 @@ void loop()
   
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
       
-      if (response.indexOf("Controlled Mode Activated!") != -1) 
+      if (response.indexOf("Controlled Activated!") != -1) 
       {
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
         deflAngle = getNumberFromString(response, "Defl Angle: ");
-
+        
         // switch Controlled mode status LED ON
         // switch Manual defl. mode status LED OFF
         statusLEDs(true, false, false);
@@ -207,18 +217,18 @@ void loop()
       if (potVal > potValPrevious + potValTolerance || potVal < potValPrevious - potValTolerance)
       {
         // set the reference Pitch angle and send it to the aircraft
-        refPitchAngle = potValToAngle(potVal, "Pitch");
+        refPitchAngle = mapPotVal(potVal, "Pitch");
 
         String cmd = "Ref Pitch: " + String(refPitchAngle);
     
         String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
         
-        if (response.indexOf("Received Ref Pitch: ") != -1) 
+        if (response.indexOf("Ref Pitch: ") != -1) 
         {
           // update the parameters
           currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
           deflAngle = getNumberFromString(response, "Defl Angle: ");
-
+          
           // blink Controlled mode status LED
           statusLEDBlink(CONTROLLED_LED_PIN);
 
@@ -238,18 +248,18 @@ void loop()
       if (potVal > potValPrevious + potValTolerance || potVal < potValPrevious - potValTolerance)
       {
         // set the P Gain value and send it to the aircraft
-        Kp = potValToAngle(potVal, "PGain");
+        Kp = mapPotVal(potVal, "PGain");
 
         String cmd = "Kp: " + String(Kp);
     
         String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
         
-        if (response.indexOf("Received Kp: ") != -1) 
+        if (response.indexOf("Kp: ") != -1) 
         {
           // update the parameters
           currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
           deflAngle = getNumberFromString(response, "Defl Angle: ");
-
+          
           // blink Controlled mode status LED
           statusLEDBlink(CONTROLLED_LED_PIN);
 
@@ -269,18 +279,18 @@ void loop()
       if (potVal > potValPrevious + potValTolerance || potVal < potValPrevious - potValTolerance)
       {
         // set the I Gain value and send it to the aircraft
-        Ki = potValToAngle(potVal, "IGain");
+        Ki = mapPotVal(potVal, "IGain");
 
         String cmd = "Ki: " + String(Ki);
     
         String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
         
-        if (response.indexOf("Received Ki: ") != -1) 
+        if (response.indexOf("Ki: ") != -1) 
         {
           // update the parameters
           currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
           deflAngle = getNumberFromString(response, "Defl Angle: ");
-
+      
           // blink Controlled mode status LED
           statusLEDBlink(CONTROLLED_LED_PIN);
 
@@ -300,18 +310,18 @@ void loop()
       if (potVal > potValPrevious + potValTolerance || potVal < potValPrevious - potValTolerance)
       {
         // set the D Gain value and send it to the aircraft
-        Kd = potValToAngle(potVal, "DGain");
+        Kd = mapPotVal(potVal, "DGain");
 
         String cmd = "Kd: " + String(Kd);
     
         String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
         
-        if (response.indexOf("Received Kd: ") != -1) 
+        if (response.indexOf("Kd: ") != -1) 
         {
           // update the parameters
           currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
           deflAngle = getNumberFromString(response, "Defl Angle: ");
-
+          
           // blink Controlled mode status LED
           statusLEDBlink(CONTROLLED_LED_PIN);
 
@@ -334,7 +344,7 @@ void loop()
   
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
-      if (response.indexOf("Manual Deflection Activated!") != -1) 
+      if (response.indexOf("Manual Defl Activated!") != -1) 
       {
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
@@ -358,13 +368,13 @@ void loop()
     if (potVal > potValPrevious + potValTolerance || potVal < potValPrevious - potValTolerance)
     {
       // set the Elevator Deflection value and send it to the aircraft
-      deflAngle = potValToAngle(potVal, "Deflection");
+      deflAngle = mapPotVal(potVal, "Deflection");
 
       String cmd = "Deflection: " + String(deflAngle);
 
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
       
-      if (response.indexOf("Received Deflection: ") != -1) 
+      if (response.indexOf("Deflection: ") != -1) 
       {
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
@@ -409,6 +419,7 @@ void loop()
   if (currentMode != 0)
   {
     controlledModeInput = -1;
+    inputLEDs(false, false, false, false);
   }
 }
 
@@ -454,8 +465,8 @@ float getCurrentPotValue()
   float potVal = 0;
 
   potVal = analogRead(POT_CONTROL_PIN);
-  Serial.print("potVal: ");
-  Serial.println(potVal);
+  //Serial.print("potVal: ");
+  //Serial.println(potVal);
 
   return potVal;
 }
@@ -542,21 +553,21 @@ void statusLEDBlink(int LED_PIN)
   if (LED_PIN == RADIO_LED_PIN)
   {
     digitalWrite(LED_PIN, HIGH);
-    delay(20);
+    delay(50);
     digitalWrite(LED_PIN, LOW);
   }
   else
   {
     digitalWrite(LED_PIN, LOW);
-    delay(20);
+    delay(50);
     digitalWrite(LED_PIN, HIGH);
   }
 }
 
-float potValToAngle(float potValue, String input)
+float mapPotVal(float potValue, String input)
 {
   // set the mappings accrodingly
-  if (input == "Pitch") return map(potValue, 0, 1023, -45, 45);
+  if (input == "Pitch") return map(potValue, 0, 1023, -30, 30);
   if (input == "Deflection") return map(potValue, 0, 1023, -30, 30); 
   if (input == "PGain") return map(potValue, 0, 1023, -10, 10);
   if (input == "IGain") return map(potValue, 0, 1023, -10, 10);
