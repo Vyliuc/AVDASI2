@@ -53,14 +53,14 @@ struct att {
 // 2 - manual deflection
 int mode = 1;
 
-float deflAngle = 0;
-float refPitchAngle = 0;
-float currentPitchAngle = 0;
-float Kp = 1;
-float Ki = 1;
-float Kd = 1;
+double deflAngle = 0;
+double refPitchAngle = 0;
+double currentPitchAngle = 0;
+double Kp = 1;
+double Ki = 1;
+double Kd = 1;
 
-float pitchAngleTolerance = 1;
+double pitchAngleTolerance = 1;
 
 double angvel = 0;
 double angacc = 0;
