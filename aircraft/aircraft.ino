@@ -6,6 +6,7 @@
 #include <MPU6050_6Axis_MotionApps20.h>
 #include <Servo.h>
 #include <String.h>
+#include <PID.h>
 
 #define SERVO_PIN            23
 
@@ -65,6 +66,7 @@ double angacc = 0;
 float lastTimeTaken = micros()/1.0E6;
 
 Servo elevator;
+PID controlPID(&currentPitchAngle,&deflAngle,&refPitchAngle,Kp, Ki, Kd, DIRECT);
 
 File logsFile;
 
@@ -83,6 +85,9 @@ void setup()
 
   // initialize the Servo motor
   elevator.attach(SERVO_PIN);
+
+  //initialize the PID controller
+  controlPID.SetMode(AUTOMATIC);
 }
 
 void loop() {
@@ -152,28 +157,6 @@ void loop() {
     float const lim = 180; //elevator deflection limit (change as required)
     float M = 19208; //estimated moment of inertia (upper estimate 24010, lower estimate 19208)
 
-    // TODO: ABDI CHANGE THE PID LOOP
-    // DEFLECT THE ELEVATOR TO MAINTAIN THE REF. PITCH ANGLE
-    // ALSO APPLY SOME TOLERANCE TO THE FINAL PITCH ANGLE (AFTER DISTURBANCES)
-
-    // calculate error (in this case, excess moment)
-    error = (p_dyn*xtail*St*((at*(currentPitchAngle+it+((angvel*xtail)/V)))+(adel*deflAngle))) + (xg*m*g)- M*angacc;
-
-    Serial.print("Excess moment: ");
-    Serial.println(error);
-    
-    // while the error is non zero, loop over moment balance until it's zero
-    if (error != 0) 
-    {
-      // run moment balance
-      deflAngle = (((M*angacc)/(p_dyn*xtail*St))-((xg*m*g)/(p_dyn*xtail*St))-(at*currentPitchAngle)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
-
-      // TODO: ADJUST THE DEFL. ANGLE WITH GAINS BELOW
-
-      Serial.print("Defl angle needed: ");
-      Serial.println(deflAngle);
-    }
-
     // TODO: USE THE FOLLOWING VARIABLES RECEIVED FOR DEFL. ANGLE ADJUSTMENT (PID CONTROL)
 
     if (responseReceived.indexOf("Received Ref Pitch: ") != -1) // if Ref. Pitch has been sent
@@ -216,6 +199,35 @@ void loop() {
       Serial.print("Received Kd: ");
       Serial.println(Kd);
     }
+
+    // TODO: ABDI CHANGE THE PID LOOP
+    // DEFLECT THE ELEVATOR TO MAINTAIN THE REF. PITCH ANGLE
+    // ALSO APPLY SOME TOLERANCE TO THE FINAL PITCH ANGLE (AFTER DISTURBANCES)
+
+    // calculate error (in this case, excess moment)
+    //error = (p_dyn*xtail*St*((at*(currentPitchAngle+it+((angvel*xtail)/V)))+(adel*deflAngle))) + (xg*m*g)- M*angacc;
+
+    // calculate error (in this case, excess pitch)
+    error = currentPitchAngle - referencePitchAngle
+
+    Serial.print("Pitch error: ");
+    Serial.println(error);
+    
+    // while the error is non zero, loop over moment balance until it's zero
+    if (error != 0) 
+    {
+      // run moment balance
+      //deflAngle = (((M*angacc)/(p_dyn*xtail*St))-((xg*m*g)/(p_dyn*xtail*St))-(at*currentPitchAngle)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
+
+      //run PID control
+      controlPID.Compute();
+      
+      // TODO: ADJUST THE DEFL. ANGLE WITH GAINS BELOW
+
+      Serial.print("Defl angle needed: ");
+      Serial.println(deflAngle);
+    }
+
 
     // send back the Defl. and Pitch angles to the controller every 1s
     if (lastTimeTaken + 1 <= micros()/1.0E6)
