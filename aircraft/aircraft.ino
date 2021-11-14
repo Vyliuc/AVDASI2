@@ -96,19 +96,19 @@ void loop() {
   if (response.indexOf("Controlled Activated!") != -1) 
   {
     mode = 0;
-    logToSD("\n CONTROLLED MODE");
+    logToSD("\nCONTROLLED MODE\n");
     Serial.println("On Controlled");
   }
   else if (response.indexOf("Manual Defl Activated!") != -1) 
   {
     mode = 2;
-    logToSD("\n MANUAL DEFLECTION MODE");
+    logToSD("\nMANUAL DEFLECTION MODE\n");
     Serial.println("On Manual Deflection");
   }
   else if (response.indexOf("Neutral Mode Activated!") != -1) 
   {
     mode = 1;
-    logToSD("\n NEUTRAL MODE");
+    logToSD("\nNEUTRAL MODE\n");
     Serial.println("On Neutral");
   }
 
@@ -133,7 +133,15 @@ void loop() {
     Serial.println(attitude.time,6);
 
     // log time, pitch, vel, acc
-    String mpuData = String(attitude.time) + ":    PITCH: " + String(currentPitchAngle) + ",    VEL: " + String(angvel) + ",    ACC: " + String(angacc);
+    String mpuData = String(attitude.time) +
+    ":    PITCH: " + String(currentPitchAngle) +
+    ",    VEL: " + String(angvel) +
+    ",    ACC: " + String(angacc) +
+    ",    DEFL: " + String(deflAngle) +
+    ",    Kp: " + String(Kp) +
+    ",    Ki: " + String(Ki) +
+    ",    Kd: " + String(Kd);
+    
     logToSD(mpuData);
   }
   
@@ -185,7 +193,7 @@ void loop() {
     {
       refPitchAngle = getNumberFromString(response, "Ref Pitch: ");
 
-      String logMsg = "\n NEW REF. PITCH: " + String(refPitchAngle);
+      String logMsg = "\nNEW REF. PITCH: " + String(refPitchAngle) + "\n";
       logToSD(logMsg);
 
       Serial.print("Received Ref. Pitch: ");
@@ -195,7 +203,7 @@ void loop() {
     {
       Kp = getNumberFromString(response, "Kp: ");
 
-      String logMsg = "\n NEW Kp: " + String(Kp);
+      String logMsg = "\nNEW Kp: " + String(Kp)+ "\n";
       logToSD(logMsg);
 
       Serial.print("Received Kp: ");
@@ -205,7 +213,7 @@ void loop() {
     {
       Ki = getNumberFromString(response, "Ki: ");
 
-      String logMsg = "\n NEW Ki: " + String(Ki);
+      String logMsg = "\nNEW Ki: " + String(Ki)+ "\n";
       logToSD(logMsg);
 
       Serial.print("Received Ki: ");
@@ -215,7 +223,7 @@ void loop() {
     {
       Kd = getNumberFromString(response, "Kd: ");
 
-      String logMsg = "\n NEW Kd: " + String(Kd);
+      String logMsg = "\nNEW Kd: " + String(Kd) + "\n";
       logToSD(logMsg);
 
       Serial.print("Kd: ");
@@ -247,7 +255,7 @@ void loop() {
     {
       deflAngle = getNumberFromString(response, "Deflection: ");
 
-      String logMsg = "\n NEW DEFLECTION: " + String(deflAngle);
+      String logMsg = "\nNEW DEFLECTION SETTING: " + String(deflAngle)+ "\n";
       logToSD(logMsg);
 
       Serial.print("Received Deflection: ");
