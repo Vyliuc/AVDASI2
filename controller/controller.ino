@@ -57,8 +57,8 @@ float deflAngle = 0;
 float refPitchAngle = 0;
 float currentPitchAngle = 0;
 float Kp = 1;
-float Ki = 1;
-float Kd = 1;
+float Ki = 0;
+float Kd = 0;
 
 float potVal = 0;
 float potValTolerance = 5;

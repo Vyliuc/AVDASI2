@@ -57,8 +57,8 @@ double deflAngle = 0;
 double refPitchAngle = 0;
 double currentPitchAngle = 0;
 double Kp = 1;
-double Ki = 1;
-double Kd = 1;
+double Ki = 0;
+double Kd = 0;
 
 double pitchAngleTolerance = 1;
 
@@ -184,6 +184,8 @@ void loop() {
     {
       Kp = getNumberFromString(response, "Kp: ");
 
+      controlPID.SetTunings(Kp, Ki, Kd);
+      
       String logMsg = "\nNEW Kp: " + String(Kp)+ "\n";
       logToSD(logMsg);
 
@@ -194,6 +196,8 @@ void loop() {
     {
       Ki = getNumberFromString(response, "Ki: ");
 
+      controlPID.SetTunings(Kp, Ki, Kd);
+
       String logMsg = "\nNEW Ki: " + String(Ki)+ "\n";
       logToSD(logMsg);
 
@@ -203,6 +207,8 @@ void loop() {
     else if (response.indexOf("Kd: ") != -1) // if D Gain has been sent
     {
       Kd = getNumberFromString(response, "Kd: ");
+
+      controlPID.SetTunings(Kp, Ki, Kd);
 
       String logMsg = "\nNEW Kd: " + String(Kd) + "\n";
       logToSD(logMsg);
