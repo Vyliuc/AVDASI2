@@ -22,10 +22,10 @@ float const rho = 1.225; //density
 float q = 0.5*rho*(pow(V,2)); // dynamic pressure (MAY BE VARIABLE LATER - MOVE INTO LOOP IF THIS IS THE CASE)
 float def = 0; // initial elevator deflection
 float error = 0; // excess moment from the balance of moments
-float const lim = 180; //elevator deflection limit (change as required)
+float const lim = 50; //elevator deflection limit (change as required)
 float M = 19208; //second moment of area (upper estimate 24010, lower estimate 19208)
 //EXCITATION PARAMETERS
-float a = 10;
+float a = 40;
 float b = 0.009;
 
 void setup() {
@@ -33,7 +33,6 @@ void setup() {
   // initialize serial communications at 9600 bps:
   Serial.begin(9600);
   elevator.attach(SERVO_PIN);
-  Serial.print (q);
 }
 
 void loop() {

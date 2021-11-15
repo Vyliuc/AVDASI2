@@ -6,6 +6,7 @@
 #include <MPU6050_6Axis_MotionApps20.h>
 #include <Servo.h>
 #include <String.h>
+#include <PID.h>
 
 #define SERVO_PIN            23
 
@@ -52,12 +53,14 @@ struct att {
 // 2 - manual deflection
 int mode = 1;
 
-float deflAngle = 0;
-float refPitchAngle = 0;
-float currentPitchAngle = 0;
-float Kp = 1;
-float Ki = 1;
-float Kd = 1;
+double deflAngle = 0;
+double refPitchAngle = 0;
+double currentPitchAngle = 0;
+double Kp = 1;
+double Ki = 0;
+double Kd = 0;
+
+double pitchAngleTolerance = 1;
 
 double angvel = 0;
 double angacc = 0;
@@ -65,6 +68,7 @@ double angacc = 0;
 float lastTimeTaken = micros()/1.0E6;
 
 Servo elevator;
+PID controlPID(&currentPitchAngle, &deflAngle, &refPitchAngle, Kp, Ki, Kd, DIRECT);
 
 File logsFile;
 
@@ -83,28 +87,34 @@ void setup()
 
   // initialize the Servo motor
   elevator.attach(SERVO_PIN);
+
+  // initialize the PID controller
+  controlPID.SetMode(AUTOMATIC);
 }
 
 void loop() {
   // constantly listen to the transceiver & check if any data has been received
   // also send back the acknowledgment with Pitch and Defl. angles
-  String responseReceived = receive(rf69, rf69_manager, currentPitchAngle, deflAngle);
-
+  String response = receive(rf69, rf69_manager, currentPitchAngle, deflAngle);
+  
   // set the mode
-  if (responseReceived.indexOf("Controlled Mode Activated!") != -1) 
+  if (response.indexOf("Controlled Activated!") != -1) 
   {
     mode = 0;
-    logToSD("\n CONTROLLED MODE");
+    logToSD("\nCONTROLLED MODE\n");
+    Serial.println("On Controlled");
   }
-  else if (responseReceived.indexOf("Manual Deflection Activated!") != -1) 
+  else if (response.indexOf("Manual Defl Activated!") != -1) 
   {
     mode = 2;
-    logToSD("\n MANUAL DEFLECTION MODE");
+    logToSD("\nMANUAL DEFLECTION MODE\n");
+    Serial.println("On Manual Deflection");
   }
-  else if (responseReceived.indexOf("Neutral Mode Activated!") != -1) 
+  else if (response.indexOf("Neutral Mode Activated!") != -1) 
   {
     mode = 1;
-    logToSD("\n NEUTRAL MODE");
+    logToSD("\nNEUTRAL MODE\n");
+    Serial.println("On Neutral");
   }
 
   // if Controlled or Manual Deflection mode
@@ -128,7 +138,15 @@ void loop() {
     Serial.println(attitude.time,6);
 
     // log time, pitch, vel, acc
-    String mpuData = String(attitude.time) + ":    PITCH: " + String(currentPitchAngle) + ",    VEL: " + String(angvel) + ",    ACC: " + String(angacc);
+    String mpuData = String(attitude.time) +
+    ":    PITCH: " + String(currentPitchAngle) +
+    ",    VEL: " + String(angvel) +
+    ",    ACC: " + String(angacc) +
+    ",    DEFL: " + String(deflAngle) +
+    ",    Kp: " + String(Kp) +
+    ",    Ki: " + String(Ki) +
+    ",    Kd: " + String(Kd);
+    
     logToSD(mpuData);
   }
   
@@ -152,107 +170,97 @@ void loop() {
     float const lim = 180; //elevator deflection limit (change as required)
     float M = 19208; //estimated moment of inertia (upper estimate 24010, lower estimate 19208)
 
-    // TODO: ABDI CHANGE THE PID LOOP
-    // DEFLECT THE ELEVATOR TO MAINTAIN THE REF. PITCH ANGLE
-    // ALSO APPLY SOME TOLERANCE TO THE FINAL PITCH ANGLE (AFTER DISTURBANCES)
-
-    // calculate error (in this case, excess moment)
-    error = (p_dyn*xtail*St*((at*(currentPitchAngle+it+((angvel*xtail)/V)))+(adel*deflAngle))) + (xg*m*g)- M*angacc;
-
-    Serial.print("Excess moment: ");
-    Serial.println(error);
-    
-    // while the error is non zero, loop over moment balance until it's zero
-    if (error != 0) 
+    if (response.indexOf("Ref Pitch: ") != -1) // if Ref. Pitch has been sent
     {
-      // run moment balance
-      deflAngle = (((M*angacc)/(p_dyn*xtail*St))-((xg*m*g)/(p_dyn*xtail*St))-(at*currentPitchAngle)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
+      refPitchAngle = getNumberFromString(response, "Ref Pitch: ");
 
-      // TODO: ADJUST THE DEFL. ANGLE WITH GAINS BELOW
-
-      Serial.print("Defl angle needed: ");
-      Serial.println(deflAngle);
-    }
-
-    // TODO: USE THE FOLLOWING VARIABLES RECEIVED FOR DEFL. ANGLE ADJUSTMENT (PID CONTROL)
-
-    if (responseReceived.indexOf("Received Ref Pitch: ") != -1) // if Ref. Pitch has been sent
-    {
-      refPitchAngle = getNumberFromString(responseReceived, "Received Ref Pitch: ");
-
-      String logMsg = "\n NEW REF. PITCH: " + String(refPitchAngle);
+      String logMsg = "\nNEW REF. PITCH: " + String(refPitchAngle) + "\n";
       logToSD(logMsg);
 
       Serial.print("Received Ref. Pitch: ");
       Serial.println(refPitchAngle);
     }
-    else if (responseReceived.indexOf("Received Kp: ") != -1) // if P Gain has been sent
+    else if (response.indexOf("Kp: ") != -1) // if P Gain has been sent
     {
-      Kp = getNumberFromString(responseReceived, "Received Kp: ");
+      Kp = getNumberFromString(response, "Kp: ");
 
-      String logMsg = "\n NEW Kp: " + String(Kp);
+      controlPID.SetTunings(Kp, Ki, Kd);
+      
+      String logMsg = "\nNEW Kp: " + String(Kp)+ "\n";
       logToSD(logMsg);
 
       Serial.print("Received Kp: ");
       Serial.println(Kp);
     }
-    else if (responseReceived.indexOf("Received Ki: ") != -1) // if I Gain has been sent
+    else if (response.indexOf("Ki: ") != -1) // if I Gain has been sent
     {
-      Ki = getNumberFromString(responseReceived, "Received Ki: ");
+      Ki = getNumberFromString(response, "Ki: ");
 
-      String logMsg = "\n NEW Ki: " + String(Ki);
+      controlPID.SetTunings(Kp, Ki, Kd);
+
+      String logMsg = "\nNEW Ki: " + String(Ki)+ "\n";
       logToSD(logMsg);
 
       Serial.print("Received Ki: ");
       Serial.println(Ki);
     }
-    else if (responseReceived.indexOf("Received Kd: ") != -1) // if D Gain has been sent
+    else if (response.indexOf("Kd: ") != -1) // if D Gain has been sent
     {
-      Kd = getNumberFromString(responseReceived, "Received Kd: ");
+      Kd = getNumberFromString(response, "Kd: ");
 
-      String logMsg = "\n NEW Kd: " + String(Kd);
+      controlPID.SetTunings(Kp, Ki, Kd);
+
+      String logMsg = "\nNEW Kd: " + String(Kd) + "\n";
       logToSD(logMsg);
 
-      Serial.print("Received Kd: ");
+      Serial.print("Kd: ");
       Serial.println(Kd);
     }
 
-    // send back the Defl. and Pitch angles to the controller every 1s
-    if (lastTimeTaken + 1 <= micros()/1.0E6)
+    // DEFLECT THE ELEVATOR TO MAINTAIN THE REF. PITCH ANGLE
+    // ALSO APPLY SOME TOLERANCE TO THE FINAL PITCH ANGLE (AFTER DISTURBANCES)
+
+    // calculate error (in this case, excess moment)
+    //error = (p_dyn*xtail*St*((at*(currentPitchAngle+it+((angvel*xtail)/V)))+(adel*deflAngle))) + (xg*m*g)- M*angacc;
+    
+    // while the pitch angle varies, calculate the corresponding elevator deflection
+    if (currentPitchAngle > refPitchAngle + pitchAngleTolerance || currentPitchAngle < refPitchAngle - pitchAngleTolerance) 
     {
-      String cmd = "Pitch Angle: " + String(currentPitchAngle) + " Defl Angle: " + String(deflAngle);
-  
-      String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
+      //deflAngle = (((M*angacc)/(p_dyn*xtail*St))-((xg*m*g)/(p_dyn*xtail*St))-(at*currentPitchAngle)-(at*((angvel*xtail)/(pow(V,2))))-(at*it))/adel;
       
-      lastTimeTaken = micros()/1.0E6;     
+      // run PID control
+      controlPID.Compute();
+
+      Serial.print("Defl angle needed: ");
+      Serial.println(deflAngle);
     }
 
     // write deflection onto servo after some scaling and limiting
     if (abs(deflAngle) <= lim) 
     {
       elevator.write(deflAngle);
-      delay(15);
+      delay(50);
     }
     else if (deflAngle > lim) 
     {
       elevator.write(lim);
-      delay(15);
+      delay(50);
     }
     else if (deflAngle < (-1*lim)) 
     {
       elevator.write((-1*lim));
-      delay(15);
+      delay(50);
     }
   } 
 
   // MANUAL DEFLECTION MODE
   if (mode == 2)
   {
-    if (responseReceived.indexOf("Received Deflection: ") != -1) // if Defl. Angle has been sent
+    if (response.indexOf("Deflection: ") != -1) // if Defl. Angle has been sent
     {
-      deflAngle = getNumberFromString(responseReceived, "Received Deflection: ");
+      deflAngle = getNumberFromString(response, "Deflection: ");
 
-      String logMsg = "\n NEW DEFLECTION: " + String(deflAngle);
+      String logMsg = "\nNEW DEFLECTION SETTING: " + String(deflAngle)+ "\n";
       logToSD(logMsg);
 
       Serial.print("Received Deflection: ");
@@ -260,7 +268,7 @@ void loop() {
 
       // sets the servo position  
       elevator.write(deflAngle);
-      delay(15);
+      delay(50);
     }
   }
   
@@ -324,6 +332,7 @@ void mpuSetup() {
  */
 att getAttitude() {
     readYPR();
+    delay(15);
     struct att a;
     a.time = Time;
     a.yaw = ypr[0] * 180.0/M_PI;

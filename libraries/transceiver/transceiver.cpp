@@ -48,7 +48,7 @@ void transceiverSetup(RH_RF69 rf69, RHReliableDatagram rf69_manager)
 String transmit(RH_RF69 rf69, RHReliableDatagram rf69_manager, uint8_t RADIO_RX_ADDRESS, String msg) 
 {
   // Wait 1s between transmits, could also 'sleep' here!
-  delay(500);
+  delay(1);
 
   const char* radiopacket = msg.c_str();
 
@@ -144,14 +144,14 @@ String getResponseMsg(String msg, float pitchAngle, float deflAngle)
   String deflAngleString = " Defl Angle: " + deflString;
   String angles = pitchAngleString + deflAngleString;
   
-  if (msg == "Controlled") return ("Controlled Mode Activated!" + angles);
-  if (msg == "Manual Deflection") return ("Manual Deflection Activated!" + angles);
+  if (msg == "Controlled") return ("Controlled Activated!" + angles);
+  if (msg == "Manual Deflection") return ("Manual Defl Activated!" + angles);
   if (msg == "Neutral") return ("Neutral Mode Activated!" + angles);
-  if (msg.indexOf("Ref Pitch: ") != -1) return ("Received " + msg + angles);
-  if (msg.indexOf("Kp: ") != -1) return ("Received " + msg + angles);
-  if (msg.indexOf("Ki: ") != -1) return ("Received " + msg + angles);
-  if (msg.indexOf("Kd: ") != -1) return ("Received " + msg + angles);
-  if (msg.indexOf("Deflection: ") != -1) return ("Received " + msg + pitchAngleString);
-  if (msg.indexOf("Pitch Angle: ") != -1 && msg.indexOf("Defl Angle: ") != -1) return msg;
+  if (msg.indexOf("Ref Pitch: ") != -1) return (msg + angles);
+  if (msg.indexOf("Kp: ") != -1) return (msg + angles);
+  if (msg.indexOf("Ki: ") != -1) return (msg + angles);
+  if (msg.indexOf("Kd: ") != -1) return (msg + angles);
+  if (msg.indexOf("Deflection: ") != -1) return (msg + pitchAngleString);
+  if (msg.indexOf("Demand angles") != -1) return ("Angles received" + angles);
   return "";
 }
