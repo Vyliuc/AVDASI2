@@ -60,7 +60,7 @@ double Kp = 1;
 double Ki = 0;
 double Kd = 0;
 
-double pitchAngleTolerance = 1;
+double pitchAngleTolerance = 0.5;
 
 double angvel = 0;
 double angacc = 0;
@@ -299,12 +299,12 @@ void mpuSetup() {
     dmpStatus = mpu.dmpInitialize();
 
     // calibrated offsets
-    mpu.setXAccelOffset(-1471);
-    mpu.setYAccelOffset(-2535);
-    mpu.setZAccelOffset(16382);
-    mpu.setXGyroOffset(35);
-    mpu.setYGyroOffset(23);
-    mpu.setZGyroOffset(14);
+    mpu.setXAccelOffset(-601);
+    mpu.setYAccelOffset(1457);
+    mpu.setZAccelOffset(1226);
+    mpu.setXGyroOffset(102);
+    mpu.setYGyroOffset(38);
+    mpu.setZGyroOffset(5);
 
     // Check whether DMP initialised successfully (devStatus == 0 if successful)
     if(dmpStatus == 0) {

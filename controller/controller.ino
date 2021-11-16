@@ -61,7 +61,7 @@ float Ki = 0;
 float Kd = 0;
 
 float potVal = 0;
-float potValTolerance = 5;
+float potValTolerance = 2;
 
 float lastTimeTaken = micros()/1.0E6;
 
@@ -567,11 +567,11 @@ void statusLEDBlink(int LED_PIN)
 float mapPotVal(float potValue, String input)
 {
   // set the mappings accrodingly
-  if (input == "Pitch") return map(potValue, 0, 1023, -30, 30);
-  if (input == "Deflection") return map(potValue, 0, 1023, -30, 30); 
-  if (input == "PGain") return map(potValue, 0, 1023, -10, 10);
-  if (input == "IGain") return map(potValue, 0, 1023, -10, 10);
-  if (input == "DGain") return map(potValue, 0, 1023, -10, 10);
+  if (input == "Pitch") return map(potValue, 0, 1023, -30, 35);
+  if (input == "Deflection") return map(potValue, 0, 1023, -50, 50); 
+  if (input == "PGain") return map(potValue, 0, 1023, 0, 10);
+  if (input == "IGain") return map(potValue, 0, 1023, 0, 10);
+  if (input == "DGain") return map(potValue, 0, 1023, 0, 10);
 
   // default mapping
   return map(potValue, 0, 1023, 0, 180);
