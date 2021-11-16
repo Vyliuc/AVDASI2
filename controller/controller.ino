@@ -196,6 +196,11 @@ void loop()
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
         deflAngle = getNumberFromString(response, "Defl Angle: ");
+
+        // set gains to default values
+        Kp = 1;
+        Kd = 0;
+        Ki = 0;
         
         // switch Controlled mode status LED ON
         // switch Manual defl. mode status LED OFF

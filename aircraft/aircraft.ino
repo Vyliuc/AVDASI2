@@ -101,6 +101,12 @@ void loop() {
   if (response.indexOf("Controlled Activated!") != -1) 
   {
     mode = 0;
+
+    // set gains to default values
+    Kp = 1;
+    Kd = 0;
+    Ki = 0;
+    
     logToSD("\nCONTROLLED MODE\n");
     Serial.println("On Controlled");
   }
