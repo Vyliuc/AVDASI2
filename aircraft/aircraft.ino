@@ -53,12 +53,14 @@ struct att {
 // 2 - manual deflection
 int mode = 1;
 
-double deflAngle = 0;
-double refPitchAngle = 0;
-double currentPitchAngle = 0;
-double Kp = 1;
-double Ki = 0;
-double Kd = 0;
+double servoOffset = 90;
+
+double deflAngle = servoOffset;
+double refPitchAngle = servoOffset;
+double currentPitchAngle = servoOffset;
+double Kp = servoOffset + 1;
+double Ki = servoOffset;
+double Kd = servoOffset;
 
 double pitchAngleTolerance = 0.5;
 
@@ -68,7 +70,7 @@ double angacc = 0;
 float lastTimeTaken = micros()/1.0E6;
 
 Servo elevator;
-PID controlPID(&currentPitchAngle, &deflAngle, &refPitchAngle, Kp, Ki, Kd, DIRECT);
+PID controlPID(&currentPitchAngle, &deflAngle, &refPitchAngle, Kp-servoOffset, Ki-servoOffset, Kd-servoOffset, DIRECT);
 
 File logsFile;
 
@@ -87,6 +89,8 @@ void setup()
 
   // initialize the Servo motor
   elevator.attach(SERVO_PIN);
+  // initisl deflection 90 degrees
+  elevator.write(90);
 
   // initialize the PID controller
   controlPID.SetMode(AUTOMATIC);
@@ -103,9 +107,9 @@ void loop() {
     mode = 0;
 
     // set gains to default values
-    Kp = 1;
-    Kd = 0;
-    Ki = 0;
+    Kp = servoOffset + 1;
+    Kd = servoOffset;
+    Ki = servoOffset;
     
     logToSD("\nCONTROLLED MODE\n");
     Serial.println("On Controlled");
@@ -130,7 +134,7 @@ void loop() {
     // Get roll, pitch, yaw from MPU
     att attitude = getAttitude();
 
-    currentPitchAngle = attitude.pitch;
+    currentPitchAngle = servoOffset + attitude.pitch;
     angvel = attitude.pitchVel;
     angacc = attitude.pitchAcc;
   
@@ -152,6 +156,16 @@ void loop() {
     ",    Kp: " + String(Kp) +
     ",    Ki: " + String(Ki) +
     ",    Kd: " + String(Kd);
+
+  /*  if (currentPitchAngle > 0) currentPitchAngleNegative = true;
+  else currentPitchAngleNegative = false;
+
+  if (deflAngle > 0 ) deflAngleNegative = true;
+  else deflAngleNegative = false;
+
+  if (refPitchAngle > 0) refPitchAngleNegative = true;
+  else refPitchAngleNegative = false;
+  */
     
     logToSD(mpuData);
   }
@@ -240,8 +254,7 @@ void loop() {
       Serial.print("Defl angle needed: ");
       Serial.println(deflAngle);
     }
-
-    // write deflection onto servo after some scaling and limiting
+ 
     if (abs(deflAngle) <= lim) 
     {
       elevator.write(deflAngle);
@@ -265,7 +278,6 @@ void loop() {
     if (response.indexOf("Deflection: ") != -1) // if Defl. Angle has been sent
     {
       deflAngle = getNumberFromString(response, "Deflection: ");
-
       String logMsg = "\nNEW DEFLECTION SETTING: " + String(deflAngle)+ "\n";
       logToSD(logMsg);
 
