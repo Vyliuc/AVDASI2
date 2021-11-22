@@ -152,7 +152,7 @@ void loop() {
     ":    PITCH: " + String(currentPitchAngle) +
     ",    VEL: " + String(angvel) +
     ",    ACC: " + String(angacc) +
-    ",    DEFL: " + String(deflAngle) +
+    ",    DEFL: " + String(deflAngle-servoOffset) +
     ",    Kp: " + String(Kp) +
     ",    Ki: " + String(Ki) +
     ",    Kd: " + String(Kd);

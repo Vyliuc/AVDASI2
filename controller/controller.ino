@@ -197,7 +197,7 @@ void loop()
   
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
       
-      if (response.indexOf("Controlled Activated!") != -1) 
+      if (response.indexOf("Ctrlled Activated!") != -1) 
       {
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
@@ -355,7 +355,7 @@ void loop()
   
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
-      if (response.indexOf("Manual Defl Activated!") != -1) 
+      if (response.indexOf("Defl Activated!") != -1) 
       {
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
@@ -408,7 +408,7 @@ void loop()
       
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
     
-      if (response.indexOf("Neutral Mode Activated!") != -1) 
+      if (response.indexOf("Neutral Activated!") != -1) 
       {
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
