@@ -102,7 +102,7 @@ void loop() {
   String response = receive(rf69, rf69_manager, currentPitchAngle, deflAngle);
   
   // set the mode
-  if (response.indexOf("Controlled Activated!") != -1) 
+  if (response.indexOf("Ctrlled Activated!") != -1) 
   {
     mode = 0;
 
@@ -114,13 +114,13 @@ void loop() {
     logToSD("\nCONTROLLED MODE\n");
     Serial.println("On Controlled");
   }
-  else if (response.indexOf("Manual Defl Activated!") != -1) 
+  else if (response.indexOf("Defl Activated!") != -1) 
   {
     mode = 2;
     logToSD("\nMANUAL DEFLECTION MODE\n");
     Serial.println("On Manual Deflection");
   }
-  else if (response.indexOf("Neutral Mode Activated!") != -1) 
+  else if (response.indexOf("Neutral Activated!") != -1) 
   {
     mode = 1;
     logToSD("\nNEUTRAL MODE\n");

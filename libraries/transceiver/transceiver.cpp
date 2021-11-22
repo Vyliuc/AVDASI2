@@ -144,9 +144,9 @@ String getResponseMsg(String msg, float pitchAngle, float deflAngle)
   String deflAngleString = " Defl Angle: " + deflString;
   String angles = pitchAngleString + deflAngleString;
   
-  if (msg == "Controlled") return ("Controlled Activated!" + angles);
-  if (msg == "Manual Deflection") return ("Manual Defl Activated!" + angles);
-  if (msg == "Neutral") return ("Neutral Mode Activated!" + angles);
+  if (msg == "Controlled") return ("Ctrlled Activated!" + angles);
+  if (msg == "Manual Deflection") return ("Defl Activated!" + angles);
+  if (msg == "Neutral") return ("Neutral Activated!" + angles);
   if (msg.indexOf("Ref Pitch: ") != -1) return (msg + angles);
   if (msg.indexOf("Kp: ") != -1) return (msg + angles);
   if (msg.indexOf("Ki: ") != -1) return (msg + angles);
