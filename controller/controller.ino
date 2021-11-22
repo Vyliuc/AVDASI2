@@ -579,11 +579,11 @@ float mapPotVal(float potValue, String input)
 {
   // set the mappings accrodingly
   // 0 angles is mapped at 90 angles of servo deflection
-  if (input == "Pitch") return map(potValue, 0, 1023, 60, 125);
+  if (input == "Pitch") return map(potValue, 0, 1023, -35, 35);
   if (input == "Deflection") return map(potValue, 0, 1023, 40, 130); 
-  if (input == "PGain") return map(potValue, 0, 1023, 90, 100);
-  if (input == "IGain") return map(potValue, 0, 1023, 90, 100);
-  if (input == "DGain") return map(potValue, 0, 1023, 90, 100);
+  if (input == "PGain") return map(potValue, 0, 1023, 0, 10);
+  if (input == "IGain") return map(potValue, 0, 1023, 0, 10);
+  if (input == "DGain") return map(potValue, 0, 1023, 0, 10);
 
   // default mapping
   return map(potValue, 0, 1023, 0, 180);
