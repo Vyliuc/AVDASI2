@@ -56,11 +56,11 @@ int controlledModeInput = -1;
 double servoOffset = 90;
 
 float deflAngle = servoOffset;
-float refPitchAngle = servoOffset;
-float currentPitchAngle = servoOffset;
-float Kp = servoOffset + 1;
-float Ki = servoOffset;
-float Kd = servoOffset;
+float refPitchAngle = 0;
+float currentPitchAngle = 0;
+float Kp = 1;
+float Ki = 0;
+float Kd = 0;
 
 float potVal = 0;
 float potValTolerance = 2;
@@ -78,23 +78,23 @@ void setLcdData(float deflAngle, float pitchAngle, float refPitchAngle, float Kp
   
   lcd.setCursor(0, 1); 
   lcd.print("Pitch "); 
-  lcd.print(pitchAngle - servoOffset);
+  lcd.print(pitchAngle);
 
   lcd.setCursor(0, 3);
   lcd.print("Ref Pitch "); 
-  lcd.print(refPitchAngle - servoOffset);
+  lcd.print(refPitchAngle);
 
   lcd.setCursor(12, 0);
   lcd.print("Kp "); 
-  lcd.print(Kp - servoOffset);
+  lcd.print(Kp);
 
   lcd.setCursor(12, 1);
   lcd.print("Ki "); 
-  lcd.print(Ki - servoOffset);
+  lcd.print(Ki);
 
   lcd.setCursor(12, 2);
   lcd.print("Kd "); 
-  lcd.print(Kd - servoOffset);
+  lcd.print(Kd);
 }
 
 void setup() 
@@ -204,9 +204,9 @@ void loop()
         deflAngle = getNumberFromString(response, "Defl Angle: ");
 
         // set gains to default values
-        Kp = servoOffset + 1;
-        Kd = servoOffset;
-        Ki = servoOffset;
+        Kp = 1;
+        Kd = 0;
+        Ki = 0;
         
         // switch Controlled mode status LED ON
         // switch Manual defl. mode status LED OFF

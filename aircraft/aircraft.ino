@@ -56,11 +56,11 @@ int mode = 1;
 double servoOffset = 90;
 
 double deflAngle = servoOffset;
-double refPitchAngle = servoOffset;
-double currentPitchAngle = servoOffset;
-double Kp = servoOffset + 1;
-double Ki = servoOffset;
-double Kd = servoOffset;
+double refPitchAngle = 0;
+double currentPitchAngle = 0;
+double Kp = 1;
+double Ki = 0;
+double Kd = 0;
 
 double pitchAngleTolerance = 0.5;
 
@@ -70,7 +70,7 @@ double angacc = 0;
 float lastTimeTaken = micros()/1.0E6;
 
 Servo elevator;
-PID controlPID(&currentPitchAngle, &deflAngle, &refPitchAngle, Kp-servoOffset, Ki-servoOffset, Kd-servoOffset, DIRECT);
+PID controlPID(&currentPitchAngle, &deflAngle, &refPitchAngle, Kp, Ki, Kd, DIRECT);
 
 File logsFile;
 
@@ -107,9 +107,9 @@ void loop() {
     mode = 0;
 
     // set gains to default values
-    Kp = servoOffset + 1;
-    Kd = servoOffset;
-    Ki = servoOffset;
+    Kp = 1;
+    Kd = 0;
+    Ki = 0;
     
     logToSD("\nCONTROLLED MODE\n");
     Serial.println("On Controlled");
@@ -134,7 +134,7 @@ void loop() {
     // Get roll, pitch, yaw from MPU
     att attitude = getAttitude();
 
-    currentPitchAngle = servoOffset + attitude.pitch;
+    currentPitchAngle = attitude.pitch;
     angvel = attitude.pitchVel;
     angacc = attitude.pitchAcc;
   
