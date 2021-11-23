@@ -129,8 +129,8 @@ void loop() {
 
   // if Controlled or Manual Deflection mode
   // monitor MPU data, log it
-  if (mode == 0 || mode == 2)
-  {
+  //if (mode == 0 || mode == 2)
+  //{
     // Get roll, pitch, yaw from MPU
     att attitude = getAttitude();
 
@@ -168,7 +168,7 @@ void loop() {
   */
     
     logToSD(mpuData);
-  }
+  //}
   
   // CONTROLLED MODE
   if (mode == 0)

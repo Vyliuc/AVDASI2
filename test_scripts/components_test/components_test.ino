@@ -29,29 +29,25 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  //test_modes(0);
+  test_modes(0);
   test_modes(1);
-  //test_modes(2);
+  test_modes(2);
   
-  //ctrlbtns("pitch");
-  //ctrlbtns("kp");
-  //ctrlbtns("ki");
-  //ctrlbtns("kd");
+  ctrlbtns("pitch");
+  ctrlbtns("kp");
+  ctrlbtns("ki");
+  ctrlbtns("kd");
 
-  //ctrlbtns_led_status_test("pitch");
-  //ctrlbtns_led_status_test("kp");
-  //ctrlbtns_led_status_test("ki");
-  //ctrlbtns_led_status_test("kd");
+  ctrlbtns_led_status_test("pitch");
+  ctrlbtns_led_status_test("kp");
+  ctrlbtns_led_status_test("ki");
+  ctrlbtns_led_status_test("kd");
 
-  //modeLED("ctrl")
-  //modeLED("manual")
-  //modeLED("radio")
+  mode_led_status_test("ctrl");
+  mode_led_status_test("manual");
+  mode_led_status_test("radio");
 
-  //mode_led_status_test("ctrl");
-  //mode_led_status_test("manual");
-  //mode_led_status_test("radio");
-
-  //potentiometer_test();
+  potentiometer_test();
 }
 
 void test_modes(int mode)
@@ -142,6 +138,7 @@ void ctrlbtns_led_status_test(String ctrlcmd)
 {
   if (ctrlcmd == "pitch")
   {
+    pinMode(PITCH_LED_PIN, OUTPUT);
     Serial.println("Pitch LED should be on!");
     digitalWrite(PITCH_LED_PIN, HIGH); 
     delay(500);
@@ -149,6 +146,7 @@ void ctrlbtns_led_status_test(String ctrlcmd)
   }
   else if (ctrlcmd == "kp")
   {
+    pinMode(P_GAIN_LED_PIN, OUTPUT);
     Serial.println("Kp LED should be on!");
     digitalWrite(P_GAIN_LED_PIN, HIGH); 
     delay(500);
@@ -156,6 +154,7 @@ void ctrlbtns_led_status_test(String ctrlcmd)
   }
   else if (ctrlcmd == "ki")
   {
+    pinMode(I_GAIN_LED_PIN, OUTPUT);
     Serial.println("Ki LED should be on!");
     digitalWrite(I_GAIN_LED_PIN, HIGH); 
     delay(500);
@@ -163,6 +162,7 @@ void ctrlbtns_led_status_test(String ctrlcmd)
   }
   else if (ctrlcmd == "kd")
   {
+    pinMode(D_GAIN_LED_PIN, OUTPUT);
     Serial.println("Kd LED should be on!");
     digitalWrite(D_GAIN_LED_PIN, HIGH); 
     delay(500);
@@ -174,6 +174,7 @@ void mode_led_status_test(String modeLED)
 {
   if (modeLED == "ctrl")
   {
+    pinMode(CONTROLLED_LED_PIN, OUTPUT);
     Serial.println("Ctrl LED should be on!");
     digitalWrite(CONTROLLED_LED_PIN, HIGH); 
     delay(500);
@@ -181,6 +182,7 @@ void mode_led_status_test(String modeLED)
   }
   else if (modeLED == "manual")
   {
+    pinMode(MANUALDEFL_LED_PIN, OUTPUT);
     Serial.println("Manual LED should be on!");
     digitalWrite(MANUALDEFL_LED_PIN, HIGH); 
     delay(500);
@@ -188,10 +190,11 @@ void mode_led_status_test(String modeLED)
   }
   else if (modeLED == "radio")
   {
+    pinMode(RADIO_LED_PIN, OUTPUT);
     Serial.println("Radio LED should be on!");
-    digitalWrite(I_GAIN_LED_PIN, HIGH); 
+    digitalWrite(RADIO_LED_PIN, HIGH); 
     delay(500);
-    digitalWrite(I_GAIN_LED_PIN, LOW);
+    digitalWrite(RADIO_LED_PIN, LOW);
   }
 }
 
