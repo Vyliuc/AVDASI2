@@ -1,0 +1,72 @@
+CONTROLLER (Teensy 4.0)
+----------
+Battery:
+	6V to VIN
+	GND to GND
+Transceiver:
+	SPI pins:
+		10 - CS
+		11 - MOSI
+		12 - MISO
+		13 - SCLK
+	Other:
+		3.3V- VIN
+		GND - GND
+		4 - G0
+		9 - RST
+
+LCD:
+	I2C pins:
+		18 - SDA
+		19 - SCL
+	Other:
+		6V directly from battery
+		GND - GND
+
+LED pins:
+	CONTROLLED_LED_PIN - 0
+	MANUALDEFL_LED_PIN - 1
+	RADIO_LED_PIN - 2
+
+	PITCH_LED_PIN - 22
+	P_GAIN_LED_PIN - 21
+	I_GAIN_LED_PIN - 20
+	D_GAIN_LED_PIN - 17
+
+Potentiometer pin:
+	POT_CONTROL_PIN - 23
+
+Buttons pins:
+	CONTROLLED_BTN_PIN - 14
+	MANUALDEFL_BTN_PIN - 15
+	NEUTRAL_BTN_PIN - 16
+
+Controlled Mode Input (buttons) pins:
+	PITCH_INPUT_PIN - 5
+	P_GAIN_INPUT_PIN - 6
+	I_GAIN_INPUT_PIN - 7
+	D_GAIN_INPUT_PIN - 8
+
+
+AIRCRAFT (Teensy 4.1)
+----------
+Battery:
+	6V to VIN
+	GND to GND
+	
+Transceiver:
+	SPI pins:
+		10 - CS
+		11 - MOSI
+		12 - MISO
+		13 - SCLK
+	Other:
+		3.3V- VIN
+		GND - GND
+		4 - G0
+		9 - RST
+
+Servo:
+    22 - signal
+	6V directly from battery
+	GND - GND
