@@ -53,7 +53,9 @@ int mode = -1;
 // 3 - D gain
 int controlledModeInput = -1;
 
-float deflAngle = 0;
+double servoOffset = 90;
+
+float deflAngle = servoOffset;
 float refPitchAngle = 0;
 float currentPitchAngle = 0;
 float Kp = 1;
@@ -64,6 +66,7 @@ float potVal = 0;
 float potValTolerance = 2;
 
 float lastTimeTaken = micros()/1.0E6;
+double radioInterval = 5;
 
 void setLcdData(float deflAngle, float pitchAngle, float refPitchAngle, float Kp, float Ki, float Kd) {
   // display the angles and the gains on the lcd
@@ -71,7 +74,7 @@ void setLcdData(float deflAngle, float pitchAngle, float refPitchAngle, float Kp
   
   lcd.setCursor(0, 0);
   lcd.print("Defl  ");
-  lcd.print(deflAngle);
+  lcd.print(deflAngle - servoOffset);
   
   lcd.setCursor(0, 1); 
   lcd.print("Pitch "); 
@@ -135,7 +138,10 @@ void loop()
 { 
   // listen for pitch & deflection angles every 1s
 
-  if (lastTimeTaken + 1 <= micros()/1.0E6)
+  if (mode == 0) radioInterval = 5;
+  if (mode == 2) radioInterval = 1;
+
+  if (lastTimeTaken + radioInterval <= micros()/1.0E6)
   {
     String cmd = "Demand angles";
 
@@ -191,7 +197,7 @@ void loop()
   
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
       
-      if (response.indexOf("Controlled Activated!") != -1) 
+      if (response.indexOf("Ctrlled Activated!") != -1) 
       {
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
@@ -349,7 +355,7 @@ void loop()
   
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
   
-      if (response.indexOf("Manual Defl Activated!") != -1) 
+      if (response.indexOf("Defl Activated!") != -1) 
       {
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
@@ -402,7 +408,7 @@ void loop()
       
       String response = transmit(rf69, rf69_manager, RADIO_RX_ADDRESS, cmd);
     
-      if (response.indexOf("Neutral Mode Activated!") != -1) 
+      if (response.indexOf("Neutral Activated!") != -1) 
       {
         // update the parameters
         currentPitchAngle = getNumberFromString(response, "Pitch Angle: ");
@@ -438,8 +444,8 @@ int getCurrentMode()
   manualDeflMode = digitalRead(MANUALDEFL_BTN_PIN);
   neutralMode = digitalRead(NEUTRAL_BTN_PIN);
 
-  if (controlledMode == HIGH) return 2;
-  if (manualDeflMode == HIGH) return 0;
+  if (controlledMode == HIGH) return 0;
+  if (manualDeflMode == HIGH) return 2;
   if (neutralMode == HIGH) return 1;
   
   return -1;
@@ -572,8 +578,9 @@ void statusLEDBlink(int LED_PIN)
 float mapPotVal(float potValue, String input)
 {
   // set the mappings accrodingly
-  if (input == "Pitch") return map(potValue, 0, 1023, -30, 35);
-  if (input == "Deflection") return map(potValue, 0, 1023, -50, 50); 
+  // 0 angles is mapped at 90 angles of servo deflection
+  if (input == "Pitch") return map(potValue, 0, 1023, -35, 35);
+  if (input == "Deflection") return map(potValue, 0, 1023, 40, 130); 
   if (input == "PGain") return map(potValue, 0, 1023, 0, 10);
   if (input == "IGain") return map(potValue, 0, 1023, 0, 10);
   if (input == "DGain") return map(potValue, 0, 1023, 0, 10);

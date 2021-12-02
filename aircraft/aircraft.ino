@@ -53,7 +53,9 @@ struct att {
 // 2 - manual deflection
 int mode = 1;
 
-double deflAngle = 0;
+double servoOffset = 90;
+
+double deflAngle = servoOffset;
 double refPitchAngle = 0;
 double currentPitchAngle = 0;
 double Kp = 1;
@@ -87,6 +89,8 @@ void setup()
 
   // initialize the Servo motor
   elevator.attach(SERVO_PIN);
+  // initisl deflection 90 degrees
+  elevator.write(90);
 
   // initialize the PID controller
   controlPID.SetMode(AUTOMATIC);
@@ -98,7 +102,7 @@ void loop() {
   String response = receive(rf69, rf69_manager, currentPitchAngle, deflAngle);
   
   // set the mode
-  if (response.indexOf("Controlled Activated!") != -1) 
+  if (response.indexOf("Ctrlled Activated!") != -1) 
   {
     mode = 0;
 
@@ -110,13 +114,13 @@ void loop() {
     logToSD("\nCONTROLLED MODE\n");
     Serial.println("On Controlled");
   }
-  else if (response.indexOf("Manual Defl Activated!") != -1) 
+  else if (response.indexOf("Defl Activated!") != -1) 
   {
     mode = 2;
     logToSD("\nMANUAL DEFLECTION MODE\n");
     Serial.println("On Manual Deflection");
   }
-  else if (response.indexOf("Neutral Mode Activated!") != -1) 
+  else if (response.indexOf("Neutral Activated!") != -1) 
   {
     mode = 1;
     logToSD("\nNEUTRAL MODE\n");
@@ -125,8 +129,8 @@ void loop() {
 
   // if Controlled or Manual Deflection mode
   // monitor MPU data, log it
-  if (mode == 0 || mode == 2)
-  {
+  //if (mode == 0 || mode == 2)
+  //{
     // Get roll, pitch, yaw from MPU
     att attitude = getAttitude();
 
@@ -148,13 +152,23 @@ void loop() {
     ":    PITCH: " + String(currentPitchAngle) +
     ",    VEL: " + String(angvel) +
     ",    ACC: " + String(angacc) +
-    ",    DEFL: " + String(deflAngle) +
+    ",    DEFL: " + String(deflAngle-servoOffset) +
     ",    Kp: " + String(Kp) +
     ",    Ki: " + String(Ki) +
     ",    Kd: " + String(Kd);
+
+  /*  if (currentPitchAngle > 0) currentPitchAngleNegative = true;
+  else currentPitchAngleNegative = false;
+
+  if (deflAngle > 0 ) deflAngleNegative = true;
+  else deflAngleNegative = false;
+
+  if (refPitchAngle > 0) refPitchAngleNegative = true;
+  else refPitchAngleNegative = false;
+  */
     
     logToSD(mpuData);
-  }
+  //}
   
   // CONTROLLED MODE
   if (mode == 0)
@@ -240,8 +254,7 @@ void loop() {
       Serial.print("Defl angle needed: ");
       Serial.println(deflAngle);
     }
-
-    // write deflection onto servo after some scaling and limiting
+ 
     if (abs(deflAngle) <= lim) 
     {
       elevator.write(deflAngle);
@@ -265,7 +278,6 @@ void loop() {
     if (response.indexOf("Deflection: ") != -1) // if Defl. Angle has been sent
     {
       deflAngle = getNumberFromString(response, "Deflection: ");
-
       String logMsg = "\nNEW DEFLECTION SETTING: " + String(deflAngle)+ "\n";
       logToSD(logMsg);
 
